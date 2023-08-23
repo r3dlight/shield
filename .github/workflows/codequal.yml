@@ -1,0 +1,50 @@
+name: libxxx quality checks
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+env:
+  HOME: /home/user
+  GITHUB_HOME: /home/user
+  CI: true
+
+jobs:
+  sonar-scanner:
+    name: SonarQube Quality Checks
+    defaults:
+      run:
+        shell: bash
+    runs-on: kulos-medium
+    container:
+      image: docker-kulos-nexus.orange.ledgerlabs.net/codequalbot:v0.1.0
+      credentials:
+        username: ${{ secrets.KULOS_NEXUS_CI_RO_USER }}
+        password: ${{ secrets.KULOS_NEXUS_CI_RO_PASSWORD }}
+
+    steps:
+      - name: Personalize
+        uses: kulos-devops/action-personalize@v0.1
+        with:
+          project_ref: ${{ github.ref }}
+          ssh_key: ${{ secrets.GHE_SSH_KEY }}
+          ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
+      - name: Meson Setup
+        uses: kulos-devops/action-meson@v0.0.1
+        with:
+          actions: '["setup"]'
+          coverage: true
+          options: '-Dwith_tests=true -Db_coverage=true -Doptimization=0'
+      - name: Sonar Scanner
+        uses: kulos-devops/action-codequal@v0.1.0
+        with:
+          host: ${{ secrets.SONAR_HOST }}
+          token: ${{ secrets.SONAR_TOKEN }}
+          project: outpost-libxxx
+          build_cmd: 'ninja test -C builddir'
+          coverage_gen_cmd: 'ninja coverage -C builddir'
+          coverage_path: 'builddir/meson-logs/sonarqube.xml'

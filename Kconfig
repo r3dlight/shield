@@ -1,0 +1,8 @@
+menuconfig WITH_LIBXXX
+	bool "libXXX"
+
+if WITH_LIBXXX
+
+
+
+endif

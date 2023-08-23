@@ -1,0 +1,91 @@
+name: libxxx build
+
+on:
+  push:
+  pull_request:
+    branches:
+    - main
+
+env:
+  HOME: /home/user
+  GITHUB_HOME: /home/user
+  CI: true
+
+jobs:
+  libxxx_build:
+    name: build
+    defaults:
+      run:
+        shell: bash
+    runs-on: kulos-medium
+    container:
+      image: docker-kulos-nexus.orange.ledgerlabs.net/buildbot-enclave:v1.2.0
+      credentials:
+        username: ${{ secrets.KULOS_NEXUS_CI_RO_USER }}
+        password: ${{ secrets.KULOS_NEXUS_CI_RO_PASSWORD }}
+
+    steps:
+      - name: Personalize
+        uses: kulos-devops/action-personalize@v0.1
+        with:
+          project_ref: ${{ github.ref }}
+          ssh_key: ${{ secrets.GHE_SSH_KEY }}
+          ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
+      - name: Meson Build
+        uses: kulos-devops/action-meson@main
+        with:
+          actions: '["setup", "compile"]'
+
+  libxxx_doc:
+    name: build doc
+    if: ${{ contains(github.event_name, 'pull_request') && contains(github.event.pull_request.labels.*.name, 'documentation') }}
+    defaults:
+      run:
+        shell: bash
+    runs-on: kulos-medium
+    container:
+      image: docker-kulos-nexus.orange.ledgerlabs.net/docbot:v1.1.0
+      credentials:
+        username: ${{ secrets.KULOS_NEXUS_CI_RO_USER }}
+        password: ${{ secrets.KULOS_NEXUS_CI_RO_PASSWORD }}
+
+    steps:
+      - name: Personalize
+        uses: kulos-devops/action-personalize@v0.1
+        with:
+          project_ref: ${{ github.ref }}
+          ssh_key: ${{ secrets.GHE_SSH_KEY }}
+          ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
+
+      - name: Meson doc
+        uses: kulos-devops/action-meson@main
+        with:
+          actions: '["setup", "compile"]'
+          targets: 'doc'
+          options: '-Dwith_doc=true'
+
+  libxxx_unittests:
+    name: unittests
+    needs: [ libxxx_build ]
+    defaults:
+      run:
+        shell: bash
+    runs-on: kulos-medium
+    container:
+      image: docker-kulos-nexus.orange.ledgerlabs.net/buildbot-enclave:v1.2.0
+      credentials:
+        username: ${{ secrets.KULOS_NEXUS_CI_RO_USER }}
+        password: ${{ secrets.KULOS_NEXUS_CI_RO_PASSWORD }}
+
+    steps:
+      - name: Personalize
+        uses: kulos-devops/action-personalize@v0.1
+        with:
+          project_ref: ${{ github.ref }}
+          ssh_key: ${{ secrets.GHE_SSH_KEY }}
+          ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
+      - name: Meson Unittests
+        uses: kulos-devops/action-meson@main
+        with:
+          actions: '["setup", "test"]'
+          options: '-Dwith_tests=true -Db_coverage=true -Doptimization=0'
