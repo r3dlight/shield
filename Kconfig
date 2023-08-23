@@ -1,7 +1,7 @@
-menuconfig WITH_LIBXXX
-	bool "libXXX"
+menuconfig WITH_LIBSHIELD
+	bool "libShield"
 
-if WITH_LIBXXX
+if WITH_LIBSHIELD
 
 
 
