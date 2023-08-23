@@ -54,8 +54,19 @@ char *shield_strcpy(char *dest, const char *src)
         goto end;
     }
     /* INFO: no overlapping check here */
+    size_t to_copy = shield_strlen(src);
+    if (dest < src) {
+        if (((size_t)src - (size_t)dest) < (to_copy + 1)) {
+            /* overlapping here */
+            goto end;
+        }
+    } else {
+        if (((size_t)dest - (size_t)src) < (to_copy + 1)) {
+            /* overlapping here */
+            goto end;
+        }
+    }
 
-    size_t to_copy = (strlen(dest) < strlen(src) ? strlen(dest) : strlen(src));
     for (size_t i = 0; i < to_copy; ++i) {
         dest[i] = src[i];
     }
@@ -84,8 +95,8 @@ int shield_strcmp(const char *str1, const char *str2)
         goto err;
     }
 
-    size_t len1 = strlen(str1);
-    size_t len2 = strlen(str2);
+    size_t len1 = shield_strlen(str1);
+    size_t len2 = shield_strlen(str2);
 
     size_t max_len = (len1 > len2) ? len1 : len2;
 

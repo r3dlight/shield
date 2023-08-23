@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: 2023 Ledger SAS
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
-project('libshield', 'c',
+project('libshield', 'c', 'cpp',
     meson_version: '>=1.1.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
     default_options: ['c_std=gnu11', 'cpp_std=gnu++20' ])
@@ -12,8 +12,10 @@ top_dir = meson.current_source_dir()
 
 shield_inc = include_directories('include')
 
+ssmod = import('sourceset')
+
 # starting with empty set
-shield_clib_src = files()
+shield_clib_sourceset = ssmod.source_set()
 
 # when not a subproject (standalone build), add locally specified autogen header
 # based on local defconfig. This is also included for unit testing
@@ -23,7 +25,7 @@ if not meson.is_subproject()
         '-include', '@0@'.format(config_h),
         language : ['c']
     )
-    shield_clib_src += config_h
+    shield_clib_sourceset.add(config_h)
 endif
 
 subdir('src/c')

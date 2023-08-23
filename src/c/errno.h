@@ -7,6 +7,6 @@
 /**
  * libshield local API export of errno setter
  */
-void __libshield_set_errno(int val);
+void __shield_set_errno(int val);
 
 #endif/*__ERRNO_H_*/

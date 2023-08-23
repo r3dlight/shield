@@ -1,5 +1,16 @@
+// SPDX-FileCopyrightText: 2023 Ledger SAS
+// SPDX-License-Identifier: LicenseRef-LEDGER
+
 #ifndef ERRNO_H_
 #define ERRNO_H_
+
+#ifndef TEST_MODE
+/*
+ * subtsituing errno is complex. In UT mode, glibc errno symbols must not be
+ * overloaded to avoid any corruption. Here we use __shield prefix, and macros
+ * and aliasing to handle effective replacement in embedded mode.
+ */
+#define shield_errno (__shield_errno_location())
 
 /*
  * system level error codes
@@ -43,9 +54,12 @@
 #define	EDOM		 0xf76aa1d2u	/* Math argument out of domain of func */
 #define	ERANGE		 0xf8110a2du	/* Math result not representable */
 
-int __errno_location(void);
+int __shield_errno_location(void);
 
-#define errno (__errno_location())
+/* substituing errno only when not in UT*/
+#define errno shield_errno
+
+#endif
 
 
 #endif/*ERR_H_ */

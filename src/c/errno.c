@@ -5,7 +5,7 @@
 #include <stdatomic.h>
 #include <stdint.h>
 #include <shield/errno.h>
-#include "support/sentry.h"
+#include <pthread.h>
 
 /**
  * max number of concurrent thread per task. Defines the number of instance of errno to handle
@@ -22,7 +22,7 @@
  * Like in POSIX systems, the current thread errno_v vector is initiated to zero by the
  * runtime .init funtion. 0 means 'errno has never been set'.
  */
-static atomic_int errno_v[MAX_THREAD_PER_TASK];
+static atomic_int shield_errno_v[MAX_THREAD_PER_TASK];
 
 /**
  * the current thread errno instance is associated to the current thread id. The current thread
@@ -30,10 +30,11 @@ static atomic_int errno_v[MAX_THREAD_PER_TASK];
  * setting in the stack top content (stack local information set by the kernel at the initial
  * thread execution and as such, thread local). This identifier is accessible through a libc
  * private builtin only.
+ * pthread_self() is a standard POSIX symbol for this. Its implementation may vary
  */
-int __errno_location(void) {
-    uint8_t threadid = __libc_get_current_threadid();
-    return errno_v[threadid];
+int __shield_errno_location(void) {
+    uint8_t threadid = pthread_self();
+    return shield_errno_v[threadid];
 }
 
 /**
@@ -43,6 +44,6 @@ int __errno_location(void) {
  * Although, while using canonical names only, any divergent value (faulted or
  * invalidely set) will be detected.
  */
-void __libshield_set_errno(int val) {
-    atomic_store(&(errno_v[__libc_get_current_threadid()]), val);
+void __shield_set_errno(int val) {
+    atomic_store(&(shield_errno_v[pthread_self()]), val);
 }

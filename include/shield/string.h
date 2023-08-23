@@ -15,18 +15,16 @@ extern "C" {
  * using this very symbols instead will not arm the execution, as they behave
  * in a fully conform way to the POSIX.1-2001 reference implementation.
  */
-
-size_t ssol_strlen(const char *s);
-
-char *ssol_strcpy(char *dest, const char *src);
-
-int ssol_strcmp(const char *str1, const char *str2);
-
 #ifndef TEST_MODE
-/* aliasing */
+/* using alias directly */
 size_t strlen(const char *s);
 char *strcpy(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
+#else
+/* no aliasing */
+size_t shield_strlen(const char *s);
+char *shield_strcpy(char *dest, const char *src);
+int shield_strcmp(const char *str1, const char *str2);
 #endif
 
 #if defined(__cplusplus)

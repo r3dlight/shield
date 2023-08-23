@@ -33,4 +33,4 @@ language: ['c', 'cpp'],
 )
 endif
 
-subdir('test_xxx')
+subdir('test_string')
