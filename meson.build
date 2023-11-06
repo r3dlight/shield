@@ -27,6 +27,11 @@ shield_clib_sourceset.add(kconfig_h)
 
 subdir('src/c')
 
+shield_c_dep = declare_dependency(
+    include_directories: [ 'include' ],
+    link_with: [ shield_clib ],
+)
+
 with_tests_opt = get_option('with_tests')
 if with_tests_opt
     subdir('tests')
