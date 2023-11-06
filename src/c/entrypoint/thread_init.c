@@ -11,7 +11,7 @@
 uint32_t __stack_chk_guard = 0;
 
 /* INFO: maybe let meson handle this for this very file only */
-#if GNUC
+#if __GNUC__
 #pragma GCC push_options
 #pragma GCC optimize("-fno-stack-protector")
 #endif
