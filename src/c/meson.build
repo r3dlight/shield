@@ -1,22 +1,22 @@
-shield_clib_sourceset.add(files('errno.c',
-                                'string.c',
-                                'arpa/inet.c',
-                                'errno.h',
-                                'pthread.c'
-                                )
-                         )
+shield_clib_sourceset.add(files(
+    'errno.c',
+    'string.c',
+    'arpa/inet.c',
+    'errno.h',
+    'pthread.c',
+))
 
-
-if config_data.get('CONFIG_WITH_SENTRY', 0) == 1
-shield_clib_sourceset.add(files('support/sentry.c',
-                                'support/sentry.h',
-                                'entrypoint/thread_init.c',
-                                'entrypoint/libc_init.c')
-                         )
-endif
+shield_clib_sourceset.add(
+    when: 'CONFIG_WITH_SENTRY',
+    if_true: files(
+        'support/sentry.c',
+        'support/sentry.h',
+        'entrypoint/thread_init.c',
+        'entrypoint/libc_init.c')
+)
 
 # applying config, from local or parent
-shield_clib_sourceset_config = shield_clib_sourceset.apply(config_data)
+shield_clib_sourceset_config = shield_clib_sourceset.apply(kconfig_data, strict: false)
 
 shield_clib = static_library(
     'shield_c_lib',
