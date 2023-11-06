@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: LicenseRef-LEDGER
 
 #include <stdint.h>
+#include "libc_init.h"
 
 /**
  * Canari variable, as defined in LLVM & GCC compiler documentation, in order to

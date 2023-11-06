@@ -1,5 +1,9 @@
 #include <pthread.h>
 
+#if CONFIG_WITH_SENTRY
+# include <support/sentry.h>
+#endif
+
 pthread_t pthread_self(void)
 {
 #if CONFIG_WITH_SENTRY
