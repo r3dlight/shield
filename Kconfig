@@ -3,6 +3,10 @@ menuconfig WITH_LIBSHIELD
 
 if WITH_LIBSHIELD
 
-
+config MAX_THREAD_PER_TASK
+	int "thread limit per task"
+	default 1
+	help
+	  Maximum number of threads per task
 
 endif
