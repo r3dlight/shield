@@ -4,7 +4,7 @@
 project('libshield', 'c', 'cpp',
     meson_version: '>=1.2.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
-    default_options: ['c_std=gnu11', 'cpp_std=gnu++20' ])
+    default_options: ['c_std=gnu11', 'cpp_std=gnu++20', 'config=configs/defconfig'])
 
 top_dir = meson.current_source_dir()
 
