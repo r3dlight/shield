@@ -2,11 +2,16 @@
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
 project('libshield', 'c', 'cpp',
-    meson_version: '>=1.1.0',
+    meson_version: '>=1.2.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
     default_options: ['c_std=gnu11', 'cpp_std=gnu++20' ])
 
 top_dir = meson.current_source_dir()
+
+kconfig_file = meson.current_source_dir() / 'Kconfig'
+kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kconfig_file)])
+kconfig_h = kconfig_proj.get_variable('kconfig_h')
+kconfig_data = kconfig_proj.get_variable('kconfig_data')
 
 # about libshield basics
 
@@ -17,19 +22,10 @@ ssmod = import('sourceset')
 # starting with empty set
 shield_clib_sourceset = ssmod.source_set()
 
-# when not a subproject (standalone build), add locally specified autogen header
-# based on local defconfig. This is also included for unit testing
-if not meson.is_subproject()
-    subdir('configs')
-    add_project_arguments(
-        '-include', '@0@'.format(config_h),
-        language : ['c']
-    )
-    shield_clib_sourceset.add(config_h)
-endif
+add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
+shield_clib_sourceset.add(kconfig_h)
 
 subdir('src/c')
-
 
 with_tests_opt = get_option('with_tests')
 if with_tests_opt
