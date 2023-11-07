@@ -22,5 +22,5 @@ shield_clib = static_library(
     'shield_c_lib',
     sources : shield_clib_sourceset_config.sources(),
     include_directories: shield_inc,
-    #link_with : rust_lib,
+    dependencies: [ shield_external_deps ],
 )

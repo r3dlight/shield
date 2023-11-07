@@ -13,13 +13,19 @@ kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kcon
 kconfig_h = kconfig_proj.get_variable('kconfig_h')
 kconfig_data = kconfig_proj.get_variable('kconfig_data')
 
+sentry_proj = subproject('sentry')
+
+shield_external_deps = []
+
+if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
+sentry_uapi_dep = sentry_proj.get_variable('sentry_c_uapi_dep')
+shield_external_deps += sentry_uapi_dep
+endif
 # about libshield basics
 
 shield_inc = include_directories('include')
 
 ssmod = import('sourceset')
-
-# starting with empty set
 shield_clib_sourceset = ssmod.source_set()
 
 add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
@@ -28,8 +34,9 @@ shield_clib_sourceset.add(kconfig_h)
 subdir('src/c')
 
 shield_c_dep = declare_dependency(
-    include_directories: [ 'include' ],
+    include_directories: [ shield_inc ],
     link_with: [ shield_clib ],
+    dependencies: [ shield_external_deps ],
 )
 
 with_tests_opt = get_option('with_tests')
