@@ -16,10 +16,19 @@ kconfig_data = kconfig_proj.get_variable('kconfig_data')
 sentry_proj = subproject('sentry')
 
 shield_external_deps = []
+# XXX
+shield_link_args = [ '-lgcc' ]
 
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
-sentry_uapi_dep = sentry_proj.get_variable('sentry_c_uapi_dep')
-shield_external_deps += sentry_uapi_dep
+shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
+# XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
+shield_link_args += [
+    '-Wl,--no-undefined',
+    '-Wl,--cref',
+    '-nostdlib',
+    '-nodefaultlibs',
+    '-nostartfiles'
+]
 endif
 # about libshield basics
 
@@ -37,6 +46,7 @@ shield_c_dep = declare_dependency(
     include_directories: [ shield_inc ],
     link_with: [ shield_clib ],
     dependencies: [ shield_external_deps ],
+    link_args: [ shield_link_args ],
 )
 
 with_tests_opt = get_option('with_tests')
