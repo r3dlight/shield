@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: LicenseRef-LEDGER
 
 #include <stdint.h>
+
+#include <uapi.h>
 #include "libc_init.h"
 
 /**
@@ -11,16 +13,7 @@
  */
 uint32_t __stack_chk_guard = 0;
 
-/* INFO: maybe let meson handle this for this very file only */
-#if __GNUC__
-#pragma GCC push_options
-#pragma GCC optimize("-fno-stack-protector")
-#endif
-
-/**
- * Standard entrypoint type
- */
-typedef int (*thread_entrypoint_t)(void);
+extern int main(void);
 
 /**
  * When starting a thread, the thread identifer and the SSP seed is
@@ -30,7 +23,8 @@ typedef int (*thread_entrypoint_t)(void);
  * differentiate which thread-safe errno value to use.
  * The seed is used to set the compiler-handled SSP balue.
  */
-void __start_thread(uint32_t const thread_id, uint32_t const seed, thread_entrypoint_t const entrypoint)
+void __attribute__((no_stack_protector, noreturn, used))
+_start(uint32_t const thread_id, uint32_t const seed)
 {
     int task_ret;
     /* here, the kernel alreay have copied data and zeroified bss section */
@@ -38,15 +32,13 @@ void __start_thread(uint32_t const thread_id, uint32_t const seed, thread_entryp
     __stack_chk_guard = seed;
     __libc_init(); /* initiate libc-relative ontext, if needed (globlals, etc.) */
     /* calling thread entrypoint. the main function being implemented out of this file, SSP is active */
-    task_ret = entrypoint();
+    task_ret = main();
     /* End of thread, store exit value in kernel thread information */
 #if CONFIG_WITH_SENTRY
     sys_exit(task_ret);
 #else
 # error "no supported backend"
 #endif
-}
 
-#if __GNUC__
-#pragma GCC pop_options
-#endif
+    __builtin_unreachable();
+}
