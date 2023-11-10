@@ -24,6 +24,7 @@ shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
     '-Wl,--no-undefined',
+    '-z', 'noexecstack',
     '-nostdlib',
     '-nodefaultlibs',
     '-nostartfiles'
