@@ -13,13 +13,12 @@ kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kcon
 kconfig_h = kconfig_proj.get_variable('kconfig_h')
 kconfig_data = kconfig_proj.get_variable('kconfig_data')
 
-sentry_proj = subproject('sentry')
-
 shield_external_deps = []
 # XXX
 shield_link_args = [ '-lgcc' ]
 
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
+sentry_proj = subproject('sentry')
 shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
