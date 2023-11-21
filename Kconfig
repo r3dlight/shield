@@ -16,5 +16,5 @@ menuconfig WITH_SENTRY
 	select BUILD_RUST_MODULES
 
 if WITH_SENTRY
-source "$(subprojects)/sentry/Kconfig"
+osource "$(subprojects)/sentry/Kconfig"
 endif
