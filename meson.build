@@ -17,7 +17,8 @@ shield_external_deps = []
 # XXX
 shield_link_args = [ '-lgcc' ]
 
-# Only build uapi
+# Only build uapi, if configured in Kconfig **and** while cross compiling
+if meson.is_cross_build()
 sentry_proj = subproject('sentry', default_options: ['with_kernel=false', 'with_idle=false'])
 
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
@@ -30,7 +31,9 @@ shield_link_args += [
     '-nodefaultlibs',
     '-nostartfiles'
 ]
-endif
+endif # w/ sentry
+endif # cross build
+
 # about libshield basics
 
 shield_inc = include_directories('include')
