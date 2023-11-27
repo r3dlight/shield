@@ -1,10 +1,10 @@
 # SPDX-FileCopyrightText: 2023 Ledger SAS
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
-project('libshield', 'c', 'cpp',
+project('libshield', 'c', 'cpp', 'rust',
     meson_version: '>=1.2.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
-    default_options: ['c_std=gnu11', 'cpp_std=gnu++20', 'config=configs/defconfig'])
+    default_options: ['c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021', 'config=configs/defconfig'])
 
 top_dir = meson.current_source_dir()
 
@@ -17,8 +17,10 @@ shield_external_deps = []
 # XXX
 shield_link_args = [ '-lgcc' ]
 
+# Only build uapi
+sentry_proj = subproject('sentry', default_options: ['with_kernel=false', 'with_idle=false'])
+
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
-sentry_proj = subproject('sentry')
 shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [

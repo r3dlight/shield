@@ -1,4 +1,4 @@
 [wrap-git]
 url = git@git.orange.ledgerlabs.net:outpost/sentry-kernel.git
-revision = feature/app-build-infrastructure
+revision = main
 depth = 1
