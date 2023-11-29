@@ -23,4 +23,5 @@ shield_clib = static_library(
     sources : shield_clib_sourceset_config.sources(),
     include_directories: shield_inc,
     dependencies: [ shield_external_deps ],
+    install: true,
 )

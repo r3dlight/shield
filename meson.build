@@ -2,11 +2,19 @@
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
 project('libshield', 'c', 'cpp', 'rust',
-    meson_version: '>=1.2.0',
+    meson_version: '>=1.3.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
-    default_options: ['c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021', 'config=configs/defconfig'])
+    default_options: [
+        'c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021',
+        'warning_level=3', 'optimization=s',
+        'default_library=static', 'b_pie=false', 'b_staticpic=false',
+        'licensedir=share/info/libshield',
+        'pkgconfig.relocatable=true',
+        'config=configs/defconfig'
+])
 
 top_dir = meson.current_source_dir()
+pkg = import('pkgconfig')
 
 kconfig_file = meson.current_source_dir() / 'Kconfig'
 kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kconfig_file)])
@@ -19,9 +27,8 @@ shield_link_args = [ '-lgcc' ]
 
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
-sentry_proj = subproject('sentry', default_options: ['with_kernel=false', 'with_idle=false'])
-
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
+sentry_proj = subproject('sentry', default_options: ['with_kernel=false', 'with_idle=false'])
 shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
@@ -36,14 +43,13 @@ endif # cross build
 
 # about libshield basics
 
-shield_inc = include_directories('include')
-
 ssmod = import('sourceset')
 shield_clib_sourceset = ssmod.source_set()
 
 add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
 shield_clib_sourceset.add(kconfig_h)
 
+subdir('include')
 subdir('src/c')
 
 shield_c_dep = declare_dependency(
@@ -52,6 +58,12 @@ shield_c_dep = declare_dependency(
     dependencies: [ shield_external_deps ],
     link_args: [ shield_link_args ],
 )
+
+pkg.generate(shield_clib,
+    filebase: 'shield',
+    libraries: shield_link_args,
+)
+
 
 with_tests_opt = get_option('with_tests')
 if with_tests_opt
