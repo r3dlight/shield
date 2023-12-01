@@ -3,6 +3,18 @@ menuconfig WITH_LIBSHIELD
 
 if WITH_LIBSHIELD
 
+config MAX_THREAD_PER_TASK
+	int "thread limit per task"
+	default 1
+	help
+	  Maximum number of threads per task
 
+endif
 
+menuconfig WITH_SENTRY
+	bool "Sentry Kernel support"
+	select BUILD_RUST_MODULES
+
+if WITH_SENTRY
+osource "$(subprojects)/sentry/Kconfig"
 endif

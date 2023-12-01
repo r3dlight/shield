@@ -1,4 +1,4 @@
-name: libxxx build
+name: libshield build
 
 on:
   push:
@@ -6,13 +6,12 @@ on:
     branches:
     - main
 
-env:
-  HOME: /home/user
-  GITHUB_HOME: /home/user
-  CI: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  libxxx_build:
+  libshield_build:
     name: build
     defaults:
       run:

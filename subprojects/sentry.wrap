@@ -1,0 +1,7 @@
+[wrap-git]
+url = git@git.orange.ledgerlabs.net:outpost/sentry-kernel.git
+revision = main
+depth = 1
+
+[provide]
+uapi = sentry_c_uapi_dep
