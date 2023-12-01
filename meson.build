@@ -13,7 +13,6 @@ project('libshield', 'c', 'cpp', 'rust',
         'config=configs/defconfig'
 ])
 
-top_dir = meson.current_source_dir()
 pkg = import('pkgconfig')
 
 kconfig_file = meson.current_source_dir() / 'Kconfig'
@@ -28,8 +27,15 @@ shield_link_args = [ '-lgcc' ]
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
-sentry_proj = subproject('sentry', default_options: ['with_kernel=false', 'with_idle=false'])
-shield_external_deps += sentry_proj.get_variable('sentry_c_uapi_dep')
+
+# in case of fallback to subproject, pass default_options to subproject (i.e. sentry)
+# As sentry wrap file declares as `uapi `provider, fallback arg is implicit
+uapi_dep = dependency('uapi',
+    default_options: ['with_kernel=false', 'with_idle=false'],
+)
+
+shield_external_deps += uapi_dep
+
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
     '-Wl,--no-undefined',
