@@ -56,7 +56,7 @@ add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
 shield_clib_sourceset.add(kconfig_h)
 
 subdir('include')
-subdir('src/c')
+subdir('src')
 
 shield_c_dep = declare_dependency(
     include_directories: [ shield_inc ],

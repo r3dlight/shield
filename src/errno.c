@@ -24,6 +24,10 @@
  */
 static atomic_int shield_errno_v[MAX_THREAD_PER_TASK];
 
+#if (MAX_THREAD_PER_TASK == 1)
+#define pthread_self() 0
+#endif
+
 /**
  * the current thread errno instance is associated to the current thread id. The current thread
  * id is under the responsability of the ukernel/libc interaction, through the .init function
