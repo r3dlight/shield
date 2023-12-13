@@ -4,9 +4,10 @@
 #ifndef PTHREAD_H_
 #define PTHREAD_H_
 
+#include <inttypes.h>
 
 /* thread identifier definition */
-typedef pthread_t uint32_t
+typedef uint32_t pthread_t;
 
 pthread_t pthread_self(void);
 

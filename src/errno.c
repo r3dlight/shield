@@ -5,7 +5,7 @@
 #include <stdatomic.h>
 #include <stdint.h>
 #include <shield/errno.h>
-#include <pthread.h>
+#include <shield/pthread.h>
 
 /**
  * max number of concurrent thread per task. Defines the number of instance of errno to handle
