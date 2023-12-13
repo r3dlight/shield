@@ -21,8 +21,13 @@ kconfig_h = kconfig_proj.get_variable('kconfig_h')
 kconfig_data = kconfig_proj.get_variable('kconfig_data')
 
 shield_external_deps = []
+
 # XXX
 shield_link_args = [ '-lgcc' ]
+shield_pkgconfig_extravar = ''
+shield_extra_link_args_internal = []
+shield_extra_link_args_pkgconfig = []
+
 
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
@@ -35,6 +40,14 @@ uapi_dep = dependency('uapi',
 )
 
 shield_external_deps += uapi_dep
+shield_app_linkerscript = join_paths('lnk', 'app.ld')
+
+install_data(shield_app_linkerscript, install_dir : get_option('datadir') / 'shield')
+shield_pkgconfig_extravar += 'linker_script=${prefix}/@0@/shield/app.ld'.format(get_option('datadir'))
+
+shield_extra_link_args_internal += [ '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))]
+shield_extra_link_args_pkgconfig += [ '-T${linker_script}']
+
 
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
@@ -58,16 +71,19 @@ shield_clib_sourceset.add(kconfig_h)
 subdir('include')
 subdir('src')
 
+
+
 shield_c_dep = declare_dependency(
     include_directories: [ shield_inc ],
     link_with: [ shield_clib ],
     dependencies: [ shield_external_deps ],
-    link_args: [ shield_link_args ],
+    link_args: [ shield_link_args, shield_extra_link_args_internal ],
 )
 
 pkg.generate(shield_clib,
     filebase: 'shield',
-    libraries: shield_link_args,
+    libraries: [shield_link_args, shield_extra_link_args_pkgconfig],
+    variables: shield_pkgconfig_extravar,
 )
 
 
