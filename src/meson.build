@@ -5,8 +5,8 @@ shield_clib_sourceset.add(files(
     'errno.c',
     'string.c',
     'arpa/inet.c',
-    'errno.h',
     'pthread.c',
+    'time.c',
 ))
 
 shield_clib_sourceset.add(

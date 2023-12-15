@@ -10,6 +10,7 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
+
 /**
  * \file this header declare libc compatible (API behavior) functions
  * meaning that if a library is using libc6 <string.h>, symbol resolution

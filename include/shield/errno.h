@@ -53,6 +53,7 @@
 #define	EPIPE		 0xf3751957u	/* Broken pipe */
 #define	EDOM		 0xf76aa1d2u	/* Math argument out of domain of func */
 #define	ERANGE		 0xf8110a2du	/* Math result not representable */
+#define ENOTSUP      0xfbacfec0u    /* operation not supported */
 
 int __shield_errno_location(void);
 

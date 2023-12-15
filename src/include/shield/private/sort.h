@@ -1,14 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Ledger SAS
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef ZLIB_SORT_H
-#define ZLIB_SORT_H
+#ifndef __SORT_H
+#define __SORT_H
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #include <inttypes.h>
+#include <string.h>
+#include <shield/private/coreutils.h>
 
 /** \addtogroup sort
  *  @{
@@ -98,4 +100,4 @@ end:
 }
 #endif
 
-#endif/*!ZLIB_SORT_H*/
+#endif/*!__SORT_H*/
