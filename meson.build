@@ -27,6 +27,7 @@ shield_link_args = [ '-lgcc' ]
 shield_pkgconfig_extravar = ''
 shield_extra_link_args_internal = []
 shield_extra_link_args_pkgconfig = []
+shield_compile_args = []
 
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
@@ -47,6 +48,7 @@ shield_pkgconfig_extravar += 'linker_script=${prefix}/@0@/shield/app.ld'.format(
 shield_extra_link_args_internal += [ '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))]
 shield_extra_link_args_pkgconfig += [ '-T${linker_script}']
 
+shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
 
 # XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
 shield_link_args += [
@@ -76,12 +78,14 @@ shield_c_dep = declare_dependency(
     link_with: [ shield_clib ],
     dependencies: [ shield_external_deps ],
     link_args: [ shield_link_args, shield_extra_link_args_internal ],
+    compile_args: [ shield_compile_args ],
 )
 
 pkg.generate(shield_clib,
     filebase: 'shield',
     libraries: [shield_link_args, shield_extra_link_args_pkgconfig],
     variables: shield_pkgconfig_extravar,
+    extra_cflags: [ shield_compile_args ],
 )
 
 
