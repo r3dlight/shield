@@ -7,7 +7,7 @@ project('libshield', 'c', 'cpp', 'rust',
     default_options: [
         'c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021',
         'warning_level=3', 'optimization=s',
-        'default_library=static', 'b_pie=false', 'b_staticpic=false',
+        'default_library=static', 'b_staticpic=true',
         'licensedir=share/info/libshield',
         'pkgconfig.relocatable=true',
         'config=configs/defconfig'
