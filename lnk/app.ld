@@ -17,7 +17,6 @@ SECTIONS
     .text :
     {
         . = ALIGN(4);
-        _sidle = .;
         _stext = .;	            /* create a global symbol at data start */
         *(.text)
         *(.text*)
@@ -28,13 +27,9 @@ SECTIONS
         *(.eh_frame)
         KEEP (*(.init))
         KEEP (*(.fini))
+        . = ALIGN(4);
 
-        . = ALIGN(4);
-        _etext = .;        	/* define a global symbols at end of code */
         _exit = .;
-        _sigot = .;
-        _eidle = .;
-        . = ALIGN(4);
     } > APP_CODE
 
     .ARM.extab :
@@ -73,8 +68,20 @@ SECTIONS
         __CTOR_END__ = .;
     } > APP_CODE
 
-        /* used by the startup to initialize got */
-    .got : AT ( _sigot ) {
+    _etext = .;        	/* define a global symbols at end of code */
+    _sigot = ALIGN(4);
+
+    .svcexchange :
+    {
+        . = ALIGN(4);
+        _s_svcexchange = .;
+        . = . + __SVCEXCHANGE_SIZE;
+        _e_svcexchange = .;
+    } > APP_RAM
+
+    /* used by the startup to initialize got */
+    .got : AT ( _sigot )
+    {
         . = ALIGN(4);
             _sgot = .;
             /*  *(.got.plt)
@@ -85,21 +92,10 @@ SECTIONS
             *(.got*)
         . = ALIGN(4);
         _egot = .;
+    } > APP_RAM
 
     /* used by the startup to initialize data */
-        _sidata = .;
-    } > APP_CODE
-
-    __etext = .;    /* define a global symbol at end of code */
-    __DATA_ROM = .; /* Symbol is used by startup for data initialization */
-
-    .svcexchange :
-    {
-        . = ALIGN(4);
-        _s_idle_svcexchange = .;
-        . = . + 128;
-        _e_idle_svcexchange = .;        /* define a global symbol at data end */
-    } > APP_RAM
+    PROVIDE(_sidata = _sigot + SIZEOF(.got));
 
     /* used by the startup to initialize data */
     /* Initialized data sections goes into RAM, load LMA copy after code */
@@ -112,10 +108,6 @@ SECTIONS
         *(.data*)          /* .data* sections */
         _edata = .;        /* define a global symbol at data end */
     } > APP_RAM
-
-    __CACHE_REGION_START = ORIGIN(APP_CODE);
-    __CACHE_REGION_SIZE  = 0;
-    __NDATA_ROM = __DATA_ROM + SIZEOF(.data); /* Symbol is used by startup for ncache data initialization */
 
     /* Uninitialized data section */
     . = ALIGN(4);
@@ -134,4 +126,11 @@ SECTIONS
         __bss_end__ = _ebss;
     } > APP_RAM
 
+    /*
+     * Those symbols define heap start and end addresses, no heap by default
+     * if user add heap in it's task config, _eheap sym is patched at relocation
+     * time.
+     */
+    _sheap = .;
+    _eheap = .;
 }

@@ -28,7 +28,6 @@ shield_pkgconfig_extravar = ''
 shield_extra_link_args_internal = []
 shield_extra_link_args_pkgconfig = []
 
-
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
 if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
@@ -53,6 +52,7 @@ shield_extra_link_args_pkgconfig += [ '-T${linker_script}']
 shield_link_args += [
     '-Wl,--no-undefined',
     '-z', 'noexecstack',
+    '-Wl,--defsym,__SVCEXCHANGE_SIZE=@0@'.format(kconfig_data.get('CONFIG_SVC_EXCHANGE_AREA_LEN')),
     '-nostdlib',
     '-nodefaultlibs',
     '-nostartfiles'
@@ -70,8 +70,6 @@ shield_clib_sourceset.add(kconfig_h)
 
 subdir('include')
 subdir('src')
-
-
 
 shield_c_dep = declare_dependency(
     include_directories: [ shield_inc ],
