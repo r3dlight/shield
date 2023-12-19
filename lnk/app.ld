@@ -70,6 +70,10 @@ SECTIONS
 
     _etext = .;        	/* define a global symbols at end of code */
     _sigot = ALIGN(4);
+    . = . + SIZEOF(.got);
+    _sidata = ALIGN(4);
+    . = . + SIZEOF(.data);
+    _erom = .;
 
     .svcexchange :
     {
@@ -95,7 +99,6 @@ SECTIONS
     } > APP_RAM
 
     /* used by the startup to initialize data */
-    PROVIDE(_sidata = _sigot + SIZEOF(.got));
 
     /* used by the startup to initialize data */
     /* Initialized data sections goes into RAM, load LMA copy after code */
