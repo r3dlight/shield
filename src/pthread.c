@@ -1,4 +1,4 @@
-#include <pthread.h>
+#include <shield/pthread.h>
 
 #if CONFIG_WITH_SENTRY
 # include <support/sentry.h>

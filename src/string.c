@@ -13,7 +13,6 @@
  * exported
  */
 
-#include <stddef.h>
 #include <shield/string.h>
 
 /**
