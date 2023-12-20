@@ -55,6 +55,7 @@ shield_link_args += [
     '-Wl,--no-undefined',
     '-z', 'noexecstack',
     '-Wl,--defsym,__SVCEXCHANGE_SIZE=@0@'.format(kconfig_data.get('CONFIG_SVC_EXCHANGE_AREA_LEN')),
+    '-static-pie',
     '-nostdlib',
     '-nodefaultlibs',
     '-nostartfiles'
