@@ -6,8 +6,13 @@ if WITH_LIBSHIELD
 config MAX_THREAD_PER_TASK
 	int "thread limit per task"
 	default 1
+	range 1 1 if WITH_SENTRY
 	help
 	  Maximum number of threads per task
+
+if WITH_SENTRY
+osource "$(subprojects)/sentry/uapi/task.Kconfig"
+endif
 
 endif
 
