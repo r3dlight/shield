@@ -12,6 +12,8 @@
 
 #define TIME_DEBUG 0
 
+extern size_t _svc_exhcange;
+
 /**
  * @def number of nanosecs in one miliseconds
  *
@@ -142,18 +144,13 @@ static inline timer_info_t *__timer_find_freenode(timer_info_t * const timer_lis
 static inline int __timer_get_time_us(uint64_t *time)
 {
     int errcode = 0;
-#if 0
-    ret = sys_get_systick(PREC_MICRO);
-    if (ret != STATUS_OK) {
-        /* calling task must be allowed to measure cycle-level timestamping */
+    if (sys_get_cycle(PRECISION_MICROSECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
     memcpy(time, &_svc_exhcange, sizeof(uint64_t));
-#else
- *time = 0;
-#endif
+err:
     return errcode;
 }
 
@@ -163,18 +160,13 @@ static inline int __timer_get_time_us(uint64_t *time)
 static inline int __timer_get_time_ms(uint64_t *time)
 {
     int errcode = 0;
-#if 0
-    ret = sys_get_systick(PREC_MILI);
-    if (ret != STATUS_OK) {
-        /* calling task must be allowed to measure cycle-level timestamping */
+    if (sys_get_cycle(PRECISION_MILLISECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
     memcpy(time, &_svc_exhcange, sizeof(uint64_t));
-#else
- *time = 0;
-#endif
+err:
     return errcode;
 }
 
@@ -184,18 +176,13 @@ static inline int __timer_get_time_ms(uint64_t *time)
 static inline int __timer_get_time_ns(uint64_t *time)
 {
     int errcode = 0;
-#if 0
-    ret = sys_get_systick(PREC_NANO);
-    if (ret != STATUS_OK) {
-        /* calling task must be allowed to measure cycle-level timestamping */
+    if (sys_get_cycle(PRECISION_NANOSECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
     memcpy(time, &_svc_exhcange, sizeof(uint64_t));
-#else
- *time = 0;
-#endif
+err:
     return errcode;
 }
 
@@ -320,9 +307,20 @@ static int __timer_setnode(timer_t id,
             timer->periodic = false;
         }
         if (period_ms == 0) {
+            timer_info_t *unset_timer;
             /* we require to set a node with NULL value, meaning cleaning a timer,
              * not setting a new one.
              * Previous instances has been postponed, we can leave now... */
+            /* this timer being postpone but without newly created one, the handler will not
+             * move it back to the unset timers list. We do it now */
+            timer->postponed = true;
+            timer->periodic = false;
+            if (unlikely((unset_timer = __timer_find_freenode(timer_ctx.timers)) == NULL)) {
+                errcode = -1;
+                __shield_set_errno(ENOMEM);
+                goto err;
+            }
+            memcpy(unset_timer, timer, sizeof(timer_info_t));
             errcode = 0;
             goto end;
         }
@@ -678,18 +676,9 @@ int seph_clock_gettime(clockid_t clockid, struct timespec *tp)
         goto err;
     }
 
-    /* as we can't check the level of permission we have (depend on the task),
-     * we first try the most precise measurement, and continue upto the less
-     * precise one.
-     * The first valid measurement makes the function returns */
     if (likely(__timer_get_time_us(&time) == STATUS_OK)) {
         tp->tv_nsec = (time % MICRO_IN_SEC) * MICRO_IN_NSEC;
         tp->tv_sec = (time / MICRO_IN_SEC);
-        goto end;
-    }
-    if (likely(__timer_get_time_ms(&time) == STATUS_OK)) {
-        tp->tv_nsec = (time % MILI_IN_SEC) * MILI_IN_NSECS;
-        tp->tv_sec = (time / MILI_IN_SEC);
         goto end;
     }
     /* EPERM is not a POSIX defined return value, but time measurement is controled on EwoK */
