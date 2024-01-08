@@ -689,9 +689,55 @@ end:
     return errcode;
 }
 
+int seph_nanosleep(const struct timespec *req, struct timespec *rem)
+{
+    int errcode = 0;
+    if (unlikely(req == NULL)) {
+        errcode = -1;
+        __shield_set_errno(EINVAL);
+        goto err;
+    }
+
+    if (unlikely(req->tv_sec > 0)) {
+        /* nanosleeping.... for a **very** long time ? */
+        enum Status status;
+        struct SleepDuration sd;
+
+        sd.arbitrary_ms = req->tv_nsec / MILI_IN_NSECS;
+        /* int overflow check first */
+        if (unlikely(req->tv_sec >= ((0xffffffffUL) - sd.arbitrary_ms))) {
+            errcode = -1;
+            __shield_set_errno(EINVAL);
+            goto err;
+        }
+        sd.arbitrary_ms += req->tv_sec;
+        sd.tag = SLEEP_DURATION_ARBITRARY_MS;
+        status = sys_sleep(sd, SLEEP_MODE_SHALLOW);
+        if (unlikely(status != STATUS_OK)) {
+            errcode = -1;
+            __shield_set_errno(EINTR);
+            goto err;
+        }
+        /* TODO add rem content if duration is lesser in long sleep mode */
+    } else {
+        /* active wait here, the scheduler may preempt the thread though */
+        uint32_t sleep_time_ms = req->tv_nsec / MILI_IN_NSECS;
+        uint64_t start;
+        uint64_t curr;
+        /* should never fail with us precision */
+        __timer_get_time_us(&start);
+        do {
+            __timer_get_time_us(&curr);
+        } while ((curr - start) < (req->tv_nsec / MICRO_IN_NSEC));
+    }
+err:
+    return errcode;
+}
+
 #ifndef TEST_MODE
 int clock_gettime(clockid_t clockid, struct timespec *tp) __attribute__((alias("seph_clock_gettime")));
 int timer_gettime(timer_t timerid, struct itimerspec *curr_value) __attribute__((alias("seph_timer_gettime")));
 int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value, struct itimerspec *old_value) __attribute__((alias("seph_timer_settime")));
 int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid) __attribute__((alias("seph_timer_create")));
+int nanosleep(const struct timespec *req, struct timespec *rem) __attribute__((alias("seph_nanosleep")));
 #endif/*!TEST_MODE*/
