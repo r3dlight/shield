@@ -80,12 +80,12 @@ jobs:
         with:
           actions: '["prefetch", "setup"]'
           cross_files: ${{ format('{0}/{1}', env.MESON_CROSS_FILES, 'arm-none-eabi-gcc.ini') }}
-          options: '-Doptimization=0 -Db_coverage=true -Dwith_tests=true -Dconfig=configs/defconfig'
+          options: '-Doptimization=0 -Dconfig=configs/defconfig'
       - name: Sonar Scanner
         uses: embedded-devops/action-codequal@main
         with:
           host: ${{ secrets.SONAR_HOST }}
           token: ${{ secrets.SONAR_TOKEN }}
-          project: sentry-kernel
+          project: outpost-libshield
           build_cmd: 'ninja -C builddir all && ninja -C builddir test'
           sonar_home: ${{ env.SONAR_SCANNER_HOME }}
