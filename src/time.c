@@ -12,8 +12,6 @@
 
 #define TIME_DEBUG 0
 
-extern size_t _svc_exhcange;
-
 /**
  * @def number of nanosecs in one miliseconds
  *
@@ -149,7 +147,11 @@ static inline int __timer_get_time_us(uint64_t *time)
         __shield_set_errno(EPERM);
         goto err;
     }
-    memcpy(time, &_svc_exhcange, sizeof(uint64_t));
+    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+        errcode = -1;
+        __shield_set_errno(EINVAL);
+        goto err;
+    }
 err:
     return errcode;
 }
@@ -165,7 +167,11 @@ static inline int __timer_get_time_ms(uint64_t *time)
         __shield_set_errno(EPERM);
         goto err;
     }
-    memcpy(time, &_svc_exhcange, sizeof(uint64_t));
+    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+        errcode = -1;
+        __shield_set_errno(EINVAL);
+        goto err;
+    }
 err:
     return errcode;
 }
@@ -181,7 +187,11 @@ static inline int __timer_get_time_ns(uint64_t *time)
         __shield_set_errno(EPERM);
         goto err;
     }
-    memcpy(time, &_svc_exhcange, sizeof(uint64_t));
+    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+        errcode = -1;
+        __shield_set_errno(EINVAL);
+        goto err;
+    }
 err:
     return errcode;
 }
@@ -475,7 +485,7 @@ void timer_initialize(void)
  *
  * POSIX PSE51-1 compliant
  */
-int seph_timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid)
+int shield_timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid)
 {
     int errcode = 0;
     uint8_t ret;
@@ -545,7 +555,7 @@ err:
  *
  * The alarm request is sent to the kernel.
  */
-int seph_timer_settime(timer_t timerid, int flags __attribute__((unused)), const struct itimerspec *new_value, struct itimerspec *old_value __attribute__((unused)))
+int shield_timer_settime(timer_t timerid, int flags __attribute__((unused)), const struct itimerspec *new_value, struct itimerspec *old_value __attribute__((unused)))
 {
     int errcode = 0;
     const struct timespec *ts;
@@ -600,7 +610,7 @@ err:
     return errcode;
 }
 
-int seph_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
+int shield_timer_gettime(timer_t timerid, struct itimerspec *curr_value)
 {
     uint64_t now_us;
     uint64_t eta_us;
@@ -658,7 +668,7 @@ err:
  * Exported functions part 1; clock
  */
 
-int seph_clock_gettime(clockid_t clockid, struct timespec *tp)
+int shield_clock_gettime(clockid_t clockid, struct timespec *tp)
 {
     int errcode = 0;
     uint64_t time;
@@ -689,7 +699,7 @@ end:
     return errcode;
 }
 
-int seph_nanosleep(const struct timespec *req, struct timespec *rem)
+int shield_nanosleep(const struct timespec *req, struct timespec *rem)
 {
     int errcode = 0;
     if (unlikely(req == NULL)) {
@@ -735,9 +745,9 @@ err:
 }
 
 #ifndef TEST_MODE
-int clock_gettime(clockid_t clockid, struct timespec *tp) __attribute__((alias("seph_clock_gettime")));
-int timer_gettime(timer_t timerid, struct itimerspec *curr_value) __attribute__((alias("seph_timer_gettime")));
-int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value, struct itimerspec *old_value) __attribute__((alias("seph_timer_settime")));
-int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid) __attribute__((alias("seph_timer_create")));
-int nanosleep(const struct timespec *req, struct timespec *rem) __attribute__((alias("seph_nanosleep")));
+int clock_gettime(clockid_t clockid, struct timespec *tp) __attribute__((alias("shield_clock_gettime")));
+int timer_gettime(timer_t timerid, struct itimerspec *curr_value) __attribute__((alias("shield_timer_gettime")));
+int timer_settime(timer_t timerid, int flags, const struct itimerspec *new_value, struct itimerspec *old_value) __attribute__((alias("shield_timer_settime")));
+int timer_create(clockid_t clockid, struct sigevent *sevp, timer_t *timerid) __attribute__((alias("shield_timer_create")));
+int nanosleep(const struct timespec *req, struct timespec *rem) __attribute__((alias("shield_nanosleep")));
 #endif/*!TEST_MODE*/
