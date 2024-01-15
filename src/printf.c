@@ -4,7 +4,7 @@
 #include <uapi.h>
 #include "printf_lexer.h"
 
-extern size_t _s_svcexchange;
+
 
 /**
  * log_lexer delivered printf POSIX compliant implementation
@@ -19,8 +19,14 @@ void dbgbuffer_flush(void);
 static inline void dbgbuffer_display(void)
 {
     uint16_t len = log_get_dbgbuf_offset();
-    memcpy(&_s_svcexchange, log_get_dbgbuf(), len);
+    if (unlikely(copy_from_user(log_get_dbgbuf(), len) != STATUS_OK)) {
+        /* should not happen */
+        /*@ assert(false); */
+        goto err;
+    }
     sys_log(len);
+err:
+    return;
 }
 
 /*************************************************************
