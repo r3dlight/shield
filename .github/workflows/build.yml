@@ -16,7 +16,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: kulos-medium
+    runs-on: self-hosted
     container:
       image: docker-kulos-nexus.orange.ledgerlabs.net/buildbot-enclave:v1.2.0
       credentials:
@@ -41,7 +41,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: kulos-medium
+    runs-on: self-hosted
     container:
       image: docker-kulos-nexus.orange.ledgerlabs.net/docbot:v1.1.0
       credentials:
@@ -69,7 +69,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: kulos-medium
+    runs-on: self-hosted
     container:
       image: docker-kulos-nexus.orange.ledgerlabs.net/buildbot-enclave:v1.2.0
       credentials:

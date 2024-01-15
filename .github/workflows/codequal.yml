@@ -19,7 +19,7 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: kulos-medium
+    runs-on: self-hosted
     container:
       image: docker-kulos-nexus.orange.ledgerlabs.net/codequalbot:v0.1.0
       credentials:
