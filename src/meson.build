@@ -1,9 +1,12 @@
+# for private headers, only compile time
+subdir('include')
+
 shield_clib_sourceset.add(files(
     'errno.c',
     'string.c',
     'arpa/inet.c',
-    'errno.h',
     'pthread.c',
+    'time.c',
 ))
 
 shield_clib_sourceset.add(
@@ -20,8 +23,8 @@ shield_clib_sourceset_config = shield_clib_sourceset.apply(kconfig_data, strict:
 
 shield_clib = static_library(
     'shield_c_lib',
-    sources : shield_clib_sourceset_config.sources(),
-    include_directories: shield_inc,
+    sources : [ shield_clib_sourceset_config.sources(), shield_private_headers ],
+    include_directories: [ shield_inc, shield_private_inc ],
     dependencies: [ shield_external_deps ],
     install: true,
 )
