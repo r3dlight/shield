@@ -1,0 +1,9 @@
+dunamai~=1.16.1
+meson~=1.3.0
+swig
+ninja
+kconfiglib~=14.1.0
+jinja-cli
+pyledger-svd2json>=0.1.3
+pyledger-devicetree-parser>=0.0.2
+dtschema

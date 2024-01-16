@@ -1,4 +1,4 @@
-name: libxxx quality checks
+name: libshield quality checks
 
 on:
   push:
@@ -9,9 +9,9 @@ on:
     - main
 
 env:
-  HOME: /home/user
-  GITHUB_HOME: /home/user
   CI: true
+  SONAR_SCANNER_HOME: '/opt/sonar_scanner'
+  SONAR_SCANNER_VERSION: '4.8.1.3023'
 
 jobs:
   sonar-scanner:
@@ -19,32 +19,73 @@ jobs:
     defaults:
       run:
         shell: bash
-    runs-on: kulos-medium
+    runs-on: self-hosted
     container:
-      image: docker-kulos-nexus.orange.ledgerlabs.net/codequalbot:v0.1.0
-      credentials:
-        username: ${{ secrets.KULOS_NEXUS_CI_RO_USER }}
-        password: ${{ secrets.KULOS_NEXUS_CI_RO_PASSWORD }}
+      image: mesonbuild/ubuntu-rolling:latest
 
     steps:
-      - name: Personalize
-        uses: kulos-devops/action-personalize@v0.1
+      - name: Clear GITHUB_HOME at job start
+        shell: bash
+        run: |
+          find $HOME -mindepth 1 -maxdepth 1 -not -name '.' -exec rm -rf {} \;
+      - name: Setup git
+        uses: embedded-devops/action-setup-git@main
         with:
-          project_ref: ${{ github.ref }}
           ssh_key: ${{ secrets.GHE_SSH_KEY }}
           ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
-      - name: Meson Setup
-        uses: kulos-devops/action-meson@v0.0.1
+      - name: Setup Meson
+        uses: embedded-devops/action-setup-meson@main
         with:
-          actions: '["setup"]'
-          coverage: true
-          options: '-Dwith_tests=true -Db_coverage=true -Doptimization=0'
+          token: ${{ secrets.GHE_CI_TOKEN }}
+          crossfiles_git: 'outpost/meson-cross-files'
+          crossfiles_ref: 'main'
+      - name: Install Sonar Scanner
+        uses: embedded-devops/action-sonarscanner-install@v1.1
+        with:
+          sonar_home: ${{ env.SONAR_SCANNER_HOME }}
+          sonar_version: ${{ env.SONAR_SCANNER_VERSION }}
+      - name: install prerequisites pkg
+        uses: embedded-devops/action-install-pkg@v2.0
+        with:
+          packages: 'device-tree-compiler,curl,swig|swig-git,lld'
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          targets: thumbv7m-none-eabi,thumbv7em-none-eabi,thumbv7em-none-eabihf
+          components: clippy,rustfmt
+      - name: Install (c)bindgen
+        run: |
+          cargo install cbindgen bindgen-cli --locked
+      - name: Setup C toolchain
+        uses: embedded-devops/action-setup-compiler@main
+        with:
+          compiler: gcc
+          triple: arm-none-eabi
+          ref: 13.2.Rel1
+      - name: Set pypi credentials
+        uses: embedded-devops/action-pypi@main
+        with:
+          pypi_server_url: 'https://nexus.orange.ledgerlabs.net/repository/kulos-pypi'
+          pypi_server_need_authentication: true
+          pypi_server_login: ${{ secrets.NEXUS_CI_RO_USER }}
+          pypi_server_password: ${{ secrets.NEXUS_CI_RO_PASSWORD }}
+      - uses: actions/checkout@v3
+      - name: install python deps
+        run: |
+          pip3 install -U gcovr
+          pip3 install -r requirements.txt
+      - name: Meson Setup
+        uses: embedded-devops/action-meson@main
+        with:
+          actions: '["prefetch", "setup"]'
+          cross_files: ${{ format('{0}/{1}', env.MESON_CROSS_FILES, 'arm-none-eabi-gcc.ini') }}
+          options: '-Doptimization=0 -Dconfig=configs/defconfig'
       - name: Sonar Scanner
-        uses: kulos-devops/action-codequal@v0.1.0
+        uses: embedded-devops/action-codequal@main
         with:
           host: ${{ secrets.SONAR_HOST }}
           token: ${{ secrets.SONAR_TOKEN }}
-          project: outpost-libxxx
-          build_cmd: 'ninja test -C builddir'
-          coverage_gen_cmd: 'ninja coverage -C builddir'
-          coverage_path: 'builddir/meson-logs/sonarqube.xml'
+          project: outpost-libshield
+          build_cmd: 'ninja -C builddir all && ninja -C builddir test'
+          sonar_home: ${{ env.SONAR_SCANNER_HOME }}
