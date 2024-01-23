@@ -13,7 +13,12 @@
  * exported
  */
 
+#include <stdbool.h>
 #include <shield/string.h>
+#include <shield/errno.h>
+
+#include <shield/private/errno.h>
+#include <shield/private/coreutils.h>
 
 /**
  * \brief standard (and thus unsecure) strlen implementation
@@ -113,9 +118,106 @@ err:
     return result;
 }
 
+
+
+static inline void *_aligned_memcpy(void*dest, const void*src, size_t n)
+{
+    union memarea {
+        void*     bin_p;
+        uint32_t* word_p;
+        uint8_t*  byte_p;
+    };
+    union memarea u_dest, u_src;
+    u_dest.bin_p = dest;
+    /*
+     * INFO: the const is discarded to avoid duplicating the union type, yet src is NOT
+     * modified at any time in this function
+     */
+    u_src.bin_p = (void*)src;
+    size_t offset;
+    /* world aligned copy first */
+    for (offset = 0; offset < (n - (n % sizeof(uint32_t))); offset += sizeof(uint32_t)) {
+        *u_dest.word_p = *u_src.word_p;
+        ++u_src.word_p;
+        ++u_dest.word_p;
+    }
+    /* handle residual */
+    if (offset < n) {
+        for (uint8_t i = 0; i < (n - offset); ++i) {
+            *u_dest.byte_p = *u_src.byte_p;
+            ++u_src.byte_p;
+            ++u_dest.byte_p;
+        }
+    }
+    /* TODO: add framaC ensures for src range content: 'new == 'old */
+    return dest;
+}
+
+/**
+ * We may calculate a PPCM mechanism to check if we can realign first, and then align-copy
+ * (e.g. if both are unaligned in the same way), but it is probably a waste of time...
+ */
+static inline void *_unaligned_memcpy(void*dest, const void*src, size_t n)
+{
+    uint8_t *u8_dest = dest;
+    const uint8_t *u8_src = src;
+    size_t offset;
+    /* byte copy, avoiding any multi-world writting */
+    for (size_t offset = 0; offset < n; offset += sizeof(char)) {
+        *u8_dest = *u8_src;
+        ++u8_src;
+        ++u8_dest;
+    }
+    return dest;
+}
+
+static bool _memarea_is_worldaligned(const void * memarea)
+{
+    return (((size_t)memarea % __WORDSIZE) == 0);
+}
+
+static bool _memarea_do_overlap(const void * mem_a_p, const void *mem_b_p, size_t n)
+{
+    bool result = true;
+    /* do not use pointer algorithmic but N */
+    size_t mem_a = (size_t)mem_a_p;
+    size_t mem_b = (size_t)mem_b_p;
+    /* using a clear to read algorithm, leaving optimisation to compile time */
+    if ((mem_a > mem_b) && (mem_b + n > mem_a)) {
+        goto end;
+    }
+    if ((mem_b > mem_a) && (mem_a + n > mem_b)) {
+        goto end;
+    }
+    result = false;
+end:
+    return result;
+}
+
+void *shield_memcpy(void* dest, const void* src, size_t n)
+{
+    void* result = dest;
+    if (unlikely((dest == NULL) || (src == NULL))) {
+        __shield_set_errno(EINVAL);
+        goto end;
+    }
+    if (unlikely(_memarea_do_overlap(dest, src, n))) {
+        __shield_set_errno(EINVAL);
+        goto end;
+    }
+    if (likely(_memarea_is_worldaligned(src) && _memarea_is_worldaligned(dest))) {
+        result = _aligned_memcpy(dest, src, n);
+    } else {
+        result = _unaligned_memcpy(dest, src, n);
+    }
+end:
+    return result;
+}
+
 #ifndef TEST_MODE
 /* if not in the test suite case, aliasing to POSIX symbols */
 size_t strlen(const char *s) __attribute__((alias("shield_strlen")));
 char *strcpy(char *dest, const char *src) __attribute__((alias("shield_strcpy")));
 int strcmp(const char *str1, const char *str2) __attribute__((alias("shield_strcmp")));
+void *memcpy(void* dest, const void* src, size_t n) __attribute__((alias("shield_memcpy")));
 #endif
