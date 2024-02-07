@@ -54,7 +54,6 @@ shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
 shield_link_args += [
     '-Wl,--no-undefined',
     '-z', 'noexecstack',
-    '-Wl,--defsym,__SVCEXCHANGE_SIZE=@0@'.format(kconfig_data.get('CONFIG_SVC_EXCHANGE_AREA_LEN')),
     '-static-pie',
     '-nostdlib',
     '-nodefaultlibs',
