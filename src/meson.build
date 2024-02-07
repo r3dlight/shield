@@ -7,6 +7,8 @@ shield_clib_sourceset.add(files(
     'arpa/inet.c',
     'pthread.c',
     'time.c',
+    'printf.c',
+    'printf_lexer.c',
 ))
 
 shield_clib_sourceset.add(
