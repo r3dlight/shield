@@ -50,7 +50,6 @@ shield_external_deps += uapi_dep
 shield_link_args += [
     '-Wl,--no-undefined',
     '-z', 'noexecstack',
-    '-Wl,--gc-sections',
     '-nostdlib',
     '-nodefaultlibs',
     '-nostartfiles',
@@ -72,7 +71,7 @@ if get_option('b_staticpic')
     install_data(shield_app_linkerscript, install_dir : get_option('datadir') / 'shield')
     shield_pkgconfig_extravar += [ 'linker_script=${datadir}/app.ld' ]
 
-    shield_link_args += [ '-static-pie' ]
+    shield_link_args += [ '-Wl,--gc-sections', '-static-pie' ]
     shield_extra_link_args_internal += [
         '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))
     ]
@@ -81,7 +80,7 @@ if get_option('b_staticpic')
     shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
 else
     #TODO install template linker script
-    shield_link_args += [ '-r' ]
+    shield_link_args += [ '-r', '--entry', '_start' ]
 endif
 
 endif # w/ sentry
