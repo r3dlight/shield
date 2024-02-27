@@ -79,7 +79,7 @@ SECTIONS
     {
         . = ALIGN(4);
         _s_svcexchange = .;
-        *(.svcexchange*)
+        KEEP(*(.svcexchange*))
         _e_svcexchange = .;
     } > APP_RAM
 
