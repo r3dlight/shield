@@ -14,6 +14,7 @@ project('libshield', 'c', 'cpp', 'rust',
 ])
 
 pkg = import('pkgconfig')
+fs = import('fs')
 
 kconfig_file = meson.current_source_dir() / 'Kconfig'
 kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kconfig_file)])
@@ -67,10 +68,7 @@ shield_link_args += [
 # Shield package install a linkerscript template that is feed by outpost buildsystem.
 
 if get_option('b_staticpic')
-    shield_app_linkerscript = join_paths('lnk', 'app.ld')
-    install_data(shield_app_linkerscript, install_dir : get_option('datadir') / 'shield')
-    shield_pkgconfig_extravar += [ 'linker_script=${datadir}/app.ld' ]
-
+    shield_app_linkerscript = join_paths('lnk', 'linkerscript.ld')
     shield_link_args += [ '-Wl,--gc-sections', '-static-pie' ]
     shield_extra_link_args_internal += [
         '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))
@@ -79,9 +77,13 @@ if get_option('b_staticpic')
 
     shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
 else
-    #TODO install template linker script
+    # In noPIC use template linker script
+    shield_app_linkerscript = join_paths('lnk', 'linkerscript.ld.in')
     shield_link_args += [ '-r', '--entry', '_start' ]
 endif
+
+install_data(shield_app_linkerscript, install_dir : shield_data_dir)
+shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${datadir}' / fs.name(shield_app_linkerscript)) ]
 
 endif # w/ sentry
 endif # cross build
