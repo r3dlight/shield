@@ -140,4 +140,9 @@ SECTIONS
      */
     _sheap = .;
     _eheap = .;
+
+    .note.package 0 :
+    {
+        *(.note.package*)
+    }
 }
