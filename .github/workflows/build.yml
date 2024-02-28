@@ -181,6 +181,7 @@ jobs:
       - name: Deploy documentation
         run: |
           ninja -C builddir doc/shield
+          ninja -C builddir doc/shield_pdf
           case "${{ github.event_name }}" in
                 "push")
                     current_version=${{ github.ref_name }}
@@ -203,7 +204,7 @@ jobs:
           if test $push_to_nexus -eq 1; then
             tar -C builddir/doc -czvf shield-$subdir.tar.gz shield
             file=shield-$subdir.tar.gz
-            pdf=builddir/doc/shield/shield.pdf
+            pdf=builddir/doc/shield_pdf/shield.pdf
             cp $pdf shield-${subdir}.pdf
             curl --insecure -u "${{secrets.NEXUS_CI_RW_USER}}:${{ secrets.NEXUS_CI_RW_PASSWORD }}" --upload-file shield-${subdir}.pdf "${ARTIFACT_ARCHIVE_URL}/shield-${subdir}.pdf"
             curl --insecure -u "${{secrets.NEXUS_CI_RW_USER}}:${{ secrets.NEXUS_CI_RW_PASSWORD }}" --upload-file ${file} "${ARTIFACT_ARCHIVE_URL}/${file}"
