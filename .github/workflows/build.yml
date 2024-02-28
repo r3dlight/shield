@@ -115,3 +115,105 @@ jobs:
         if: failure()
         run: |
           cat builddir/meson-logs/meson-log.txt
+
+  doc:
+    defaults:
+      run:
+        shell: bash
+    runs-on: self-hosted
+    container:
+      image: 'mesonbuild/ubuntu-rolling'
+    steps:
+      - name: Clear GITHUB_HOME at job start
+        shell: bash
+        run: |
+          find $HOME -mindepth 1 -maxdepth 1 -not -name '.' -exec rm -rf {} \;
+      - name: Setup git
+        uses: embedded-devops/action-setup-git@main
+        with:
+          ssh_key: ${{ secrets.GHE_SSH_KEY }}
+          ssh_known_hosts: ${{ secrets.GHE_HOST_KEY }}
+      - name: Setup Meson
+        uses: embedded-devops/action-setup-meson@main
+        with:
+          token: ${{ secrets.GHE_CI_TOKEN }}
+          crossfiles_git: 'outpost/meson-cross-files'
+          crossfiles_ref: 'main'
+      - name: install prerequisites pkg
+        uses: embedded-devops/action-install-pkg@v2.0
+        with:
+          packages: 'dtc|device-tree-compiler,libssh2-1|libssh2,curl,lld,swig'
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+      - name: Install (c)bindgen
+        run: |
+          cargo install cbindgen bindgen-cli --locked
+      - name: Set pypi credentials
+        uses: embedded-devops/action-pypi@main
+        with:
+          pypi_server_url: 'https://nexus.orange.ledgerlabs.net/repository/kulos-pypi'
+          pypi_server_need_authentication: true
+          pypi_server_login: ${{ secrets.NEXUS_CI_RO_USER }}
+          pypi_server_password: ${{ secrets.NEXUS_CI_RO_PASSWORD }}
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: deploy local deps
+        run: |
+          pip install -r requirements.txt
+      - name: install dtc pkg
+        uses: embedded-devops/action-install-pkg@v2.0
+        with:
+          packages: 'dtc|device-tree-compiler,libssh2-1|libssh2,curl,lld'
+      - name: Meson Doc
+        uses: embedded-devops/action-meson@main
+        with:
+          actions: '["prefetch", "setup"]'
+          options: '-Dconfig=configs/defconfig -Dwith_doc=true'
+      - name: Meson postcheck
+        if: failure()
+        run: |
+          cat builddir/meson-logs/meson-log.txt
+          cat builddir/meson-logs/testlog.txt
+      - name: Build HTML documentation
+        run: |
+          ninja -C builddir doc/shield
+      - name: Build PDF documentation
+        run: |
+          ninja -C builddir doc/shield_pdf
+      - name: Deploy documentation
+        run: |
+          case "${{ github.event_name }}" in
+                "push")
+                    current_version=${{ github.ref_name }}
+                    if test "$current_version" = "main"; then
+                      push_to_nexus=1
+                      subdir="staging"
+                    else
+                      push_to_nexus=0
+                    fi
+                    ;;
+                "pull_request")
+                    current_version=pr-$(echo $GITHUB_REF| cut -d '/' -f 3)
+                    push_to_nexus=1
+                    subdir="staging"
+                    ;;
+          esac
+          HTML_BUILD_DIR=builddir/doc/shield
+          ARTIFACT_ARCHIVE_HTML_URL=${{secrets.NEXUS_SERVICE_URL}}/${{secrets.NEXUS_DOC_REPO}}/outpost/shield/$subdir/$current_version/html/
+          ARTIFACT_ARCHIVE_URL=${{secrets.NEXUS_SERVICE_URL}}/${{secrets.NEXUS_DOC_REPO}}/outpost/shield/$subdir/$current_version/
+          if test $push_to_nexus -eq 1; then
+            tar -C builddir/doc -czvf shield-$subdir.tar.gz shield
+            file=shield-$subdir.tar.gz
+            pdf=builddir/doc/shield_pdf/shield.pdf
+            cp $pdf shield-${subdir}.pdf
+            curl --insecure -u "${{secrets.NEXUS_CI_RW_USER}}:${{ secrets.NEXUS_CI_RW_PASSWORD }}" --upload-file shield-${subdir}.pdf "${ARTIFACT_ARCHIVE_URL}/shield-${subdir}.pdf"
+            curl --insecure -u "${{secrets.NEXUS_CI_RW_USER}}:${{ secrets.NEXUS_CI_RW_PASSWORD }}" --upload-file ${file} "${ARTIFACT_ARCHIVE_URL}/${file}"
+            cd ${HTML_BUILD_DIR}
+            for file in $(find . -type f); do
+              curl --insecure -u "${{secrets.NEXUS_CI_RW_USER}}:${{ secrets.NEXUS_CI_RW_PASSWORD }}" --upload-file ${file} "${ARTIFACT_ARCHIVE_HTML_URL}/${file}"
+            done
+          fi
