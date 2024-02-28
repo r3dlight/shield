@@ -178,10 +178,14 @@ jobs:
         run: |
           cat builddir/meson-logs/meson-log.txt
           cat builddir/meson-logs/testlog.txt
-      - name: Deploy documentation
+      - name: Build HTML documentation
         run: |
           ninja -C builddir doc/shield
+      - name: Build PDF documentation
+        run: |
           ninja -C builddir doc/shield_pdf
+      - name: Deploy documentation
+        run: |
           case "${{ github.event_name }}" in
                 "push")
                     current_version=${{ github.ref_name }}
