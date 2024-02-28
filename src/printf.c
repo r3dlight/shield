@@ -1,10 +1,11 @@
+// SPDX-FileCopyrightText: 2024 Ledger SAS
+// SPDX-License-Identifier: LicenseRef-LEDGER
 
 #include <shield/string.h>
 #include <shield/stdio.h>
+#include <shield/private/coreutils.h>
 #include <uapi.h>
 #include "printf_lexer.h"
-
-
 
 /**
  * log_lexer delivered printf POSIX compliant implementation
