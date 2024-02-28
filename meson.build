@@ -7,13 +7,14 @@ project('libshield', 'c', 'cpp', 'rust',
     default_options: [
         'c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021',
         'warning_level=3', 'optimization=s',
-        'default_library=static', 'b_staticpic=true',
+        'default_library=static', 'b_staticpic=false',
         'licensedir=share/info/libshield',
         'pkgconfig.relocatable=true',
-        'config=configs/defconfig'
+        'config=configs/defconfig',
 ])
 
 pkg = import('pkgconfig')
+fs = import('fs')
 
 kconfig_file = meson.current_source_dir() / 'Kconfig'
 kconfig_proj = subproject('kconfig', default_options: ['kconfig=@0@'.format(kconfig_file)])
@@ -21,18 +22,23 @@ kconfig_h = kconfig_proj.get_variable('kconfig_h')
 kconfig_data = kconfig_proj.get_variable('kconfig_data')
 
 shield_external_deps = []
+shield_data_dir = get_option('datadir') / 'shield'
 
-# XXX
+# libgcc is need for some intrinsic and explicit built-in
+# implicit built-in are forbidden.
 shield_link_args = [ '-lgcc' ]
-shield_pkgconfig_extravar = ''
+# Extra variable to add to the generated pkg-config file
+shield_pkgconfig_extravar = [ 'datadir=${prefix}/@0@'.format(shield_data_dir) ]
+# Extra link args for internal deps usage
 shield_extra_link_args_internal = []
+# Extra link args for external deps usage
 shield_extra_link_args_pkgconfig = []
 shield_compile_args = []
 
 # Only build uapi, if configured in Kconfig **and** while cross compiling
 if meson.is_cross_build()
-if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
 
+if kconfig_data.get('CONFIG_WITH_SENTRY', 0) == 1
 # in case of fallback to subproject, pass default_options to subproject (i.e. sentry)
 # As sentry wrap file declares as `uapi `provider, fallback arg is implicit
 uapi_dep = dependency('uapi',
@@ -40,25 +46,45 @@ uapi_dep = dependency('uapi',
 )
 
 shield_external_deps += uapi_dep
-shield_app_linkerscript = join_paths('lnk', 'app.ld')
 
-install_data(shield_app_linkerscript, install_dir : get_option('datadir') / 'shield')
-shield_pkgconfig_extravar += 'linker_script=${prefix}/@0@/shield/app.ld'.format(get_option('datadir'))
-
-shield_extra_link_args_internal += [ '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))]
-shield_extra_link_args_pkgconfig += [ '-T${linker_script}']
-
-shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
-
-# XXX: **do not** add gc-section here, it will be done at final link step w/ kernel and other apps
+# FIXME: may be forwarded by uapi dep (or cross file)
 shield_link_args += [
     '-Wl,--no-undefined',
     '-z', 'noexecstack',
-    '-static-pie',
     '-nostdlib',
     '-nodefaultlibs',
-    '-nostartfiles'
+    '-nostartfiles',
 ]
+
+# XXX:
+# In case of static PIC build, the app is linked as executable elf and relocates
+# at project integration time by outpost buildsystem.
+# All apps are linked against the same linker script (TODO: check soc mem capacities).
+# All PIC relative option are handled by libshield and forwarded through dependency to
+# consumer.
+#
+# In case of nopic build, the app is linked as relocatable elf (`-r` link opt, a.k.a. partial link)
+# and relink with a dedicated (with correct memory partionning) linked script at integration time.
+# Shield package install a linkerscript template that is feed by outpost buildsystem.
+
+if get_option('b_staticpic')
+    shield_app_linkerscript = join_paths('lnk', 'linkerscript.ld')
+    shield_link_args += [ '-Wl,--gc-sections', '-static-pie' ]
+    shield_extra_link_args_internal += [
+        '-T@0@'.format(join_paths(meson.current_source_dir(), shield_app_linkerscript))
+    ]
+    shield_extra_link_args_pkgconfig += [ '-T${linker_script}']
+
+    shield_compile_args += [ '-mno-pic-data-is-text-relative', '-msingle-pic-base' ]
+else
+    # In noPIC use template linker script
+    shield_app_linkerscript = join_paths('lnk', 'linkerscript.ld.in')
+    shield_link_args += [ '-r', '--entry', '_start' ]
+endif
+
+install_data(shield_app_linkerscript, install_dir : shield_data_dir)
+shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${datadir}' / fs.name(shield_app_linkerscript)) ]
+
 endif # w/ sentry
 endif # cross build
 
@@ -74,6 +100,7 @@ shield_clib_sourceset.add(kconfig_h)
 subdir('include')
 subdir('src')
 
+# shield dependency as internal meson dep (i.e. use as subproject)
 shield_c_dep = declare_dependency(
     include_directories: [ shield_inc ],
     link_with: [ shield_clib ],
@@ -82,6 +109,7 @@ shield_c_dep = declare_dependency(
     compile_args: [ shield_compile_args ],
 )
 
+# shield dependency as external pkg-config deps
 pkg.generate(shield_clib,
     filebase: 'shield',
     libraries: [shield_link_args, shield_extra_link_args_pkgconfig],
@@ -89,7 +117,7 @@ pkg.generate(shield_clib,
     extra_cflags: [ shield_compile_args ],
 )
 
-
+# unittest suite
 with_tests_opt = get_option('with_tests')
 if with_tests_opt
     subdir('tests')
