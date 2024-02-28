@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: 2024 Ledger SAS
+// SPDX-FileCopyrightText: 2023-2024 Ledger SAS
 // SPDX-License-Identifier: LicenseRef-LEDGER
 
 #include <shield/string.h>
