@@ -12,6 +12,10 @@ env:
   CI: true
   SONAR_SCANNER_HOME: '/opt/sonar_scanner'
   SONAR_SCANNER_VERSION: '4.8.1.3023'
+  DTS: 'subprojects/sentry/dts/examples/nucleo_f401re.dts'
+  DTS_INCDIR: 'subprojects/sentry/dts'
+  DOTCONFIG: 'configs/defconfig'
+
 
 jobs:
   sonar-scanner:
@@ -80,7 +84,7 @@ jobs:
         with:
           actions: '["prefetch", "setup"]'
           cross_files: ${{ format('{0}/{1}', env.MESON_CROSS_FILES, 'arm-none-eabi-gcc.ini') }}
-          options: '-Doptimization=0 -Dconfig=configs/defconfig'
+          options: '-Doptimization=0 -Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}}'
       - name: Sonar Scanner
         uses: embedded-devops/action-codequal@main
         with:

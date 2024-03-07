@@ -10,6 +10,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  DTS: 'subprojects/sentry/dts/examples/nucleo_f401re.dts'
+  DTS_INCDIR: 'subprojects/sentry/dts'
+  DOTCONFIG: 'configs/defconfig'
+
 jobs:
   forge_matrix:
     runs-on: self-hosted
@@ -110,7 +115,7 @@ jobs:
         with:
           cross_files: ${{ format('{0}/{1}', env.MESON_CROSS_FILES, 'arm-none-eabi-gcc.ini') }}
           actions: '["prefetch", "setup", "compile"]'
-          options: '-Dconfig=configs/defconfig'
+          options: '-Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}}'
       - name: Meson postcheck
         if: failure()
         run: |
@@ -172,7 +177,7 @@ jobs:
         uses: embedded-devops/action-meson@main
         with:
           actions: '["prefetch", "setup"]'
-          options: '-Dconfig=configs/defconfig -Dwith_doc=true'
+          options: '-Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}} -Dwith_doc=true'
       - name: Meson postcheck
         if: failure()
         run: |

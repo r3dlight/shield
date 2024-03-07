@@ -5,6 +5,11 @@ on:
     branches:
     - main
 
+env:
+  DTS: 'subprojects/sentry/dts/examples/nucleo_f401re.dts'
+  DTS_INCDIR: 'subprojects/sentry/dts'
+  DOTCONFIG: 'configs/defconfig'
+
 # using /home/build as home, as buildbot is using user build. Cache is still in /cache
 # This allows the usage of automated ssh key installation step
 
@@ -66,7 +71,7 @@ jobs:
         uses: embedded-devops/action-meson@main
         with:
           actions: '["prefetch", "setup"]'
-          options: '-Dwith_doc=true -Dconfig=configs/defconfig'
+          options: '-Dwith_doc=true -Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}}'
       - name: Meson postcheck
         if: failure()
         run: |
