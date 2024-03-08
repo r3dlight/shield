@@ -24,9 +24,7 @@ kconfig_data = kconfig_proj.get_variable('kconfig_data')
 shield_external_deps = []
 shield_data_dir = get_option('datadir') / 'shield'
 
-# libgcc is need for some intrinsic and explicit built-in
-# implicit built-in are forbidden.
-shield_link_args = [ '-lgcc' ]
+shield_link_args = []
 # Extra variable to add to the generated pkg-config file
 shield_pkgconfig_extravar = [ 'datadir=${prefix}/@0@'.format(shield_data_dir) ]
 # Extra link args for internal deps usage
