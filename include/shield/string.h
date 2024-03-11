@@ -22,11 +22,15 @@ extern "C" {
 size_t strlen(const char *s);
 char *strcpy(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
+
+void *memcpy(void *dest, const void *src, size_t n);
 #else
 /* no aliasing */
 size_t shield_strlen(const char *s);
 char *shield_strcpy(char *dest, const char *src);
 int shield_strcmp(const char *str1, const char *str2);
+
+void *shield_memcpy(void *dest, const void *src, size_t n);
 #endif
 
 #if defined(__cplusplus)
