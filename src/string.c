@@ -52,6 +52,25 @@ err:
 #ifndef TEST_MODE
 static
 #endif
+size_t shield_strnlen(const char *s, size_t maxlen)
+{
+    size_t result = 0;
+
+    if (s == NULL) {
+        /** TODO: panic to be called */
+        goto err;
+    }
+
+    while (s[result] != '\0' && result < maxlen) {
+        result++;
+    }
+err:
+    return result;
+}
+
+#ifndef TEST_MODE
+static
+#endif
 char *shield_strcpy(char *dest, const char *src)
 {
     if (src == NULL || dest == NULL) {
@@ -217,6 +236,7 @@ end:
 #ifndef TEST_MODE
 /* if not in the test suite case, aliasing to POSIX symbols */
 size_t strlen(const char *s) __attribute__((alias("shield_strlen")));
+size_t strnlen(const char *s, size_t len) __attribute__((alias("shield_strnlen")));
 char *strcpy(char *dest, const char *src) __attribute__((alias("shield_strcpy")));
 int strcmp(const char *str1, const char *str2) __attribute__((alias("shield_strcmp")));
 void *memcpy(void* dest, const void* src, size_t n) __attribute__((alias("shield_memcpy")));
