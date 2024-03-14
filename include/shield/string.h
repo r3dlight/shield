@@ -20,6 +20,7 @@ extern "C" {
 #ifndef TEST_MODE
 /* using alias directly */
 size_t strlen(const char *s);
+size_t strnlen(const char *s, size_t len);
 char *strcpy(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
 
@@ -27,6 +28,7 @@ void *memcpy(void *dest, const void *src, size_t n);
 #else
 /* no aliasing */
 size_t shield_strlen(const char *s);
+size_t shield_strnlen(const char *s, size_t len)
 char *shield_strcpy(char *dest, const char *src);
 int shield_strcmp(const char *str1, const char *str2);
 
