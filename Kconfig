@@ -10,10 +10,6 @@ config MAX_THREAD_PER_TASK
 	help
 	  Maximum number of threads per task
 
-if WITH_SENTRY
-osource "$(subprojects)/sentry/uapi/task.Kconfig"
-endif
-
 endif
 
 menuconfig WITH_SENTRY
