@@ -23,6 +23,8 @@ SECTIONS
         . = ALIGN(4);
         _stext = .;	            /* create a global symbol at data start */
         *(.text)
+        *(.text._start*)
+        *(.text._exit*)
         *(.text*)
         *(.rodata)         	/* .rodata sections (constants, strings, etc.) */
         *(.rodata*)         	/* .rodata sections (constants, strings, etc.) */
