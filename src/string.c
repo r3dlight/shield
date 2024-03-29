@@ -137,7 +137,20 @@ err:
     return result;
 }
 
-
+/**
+ * TODO: way to allow concat
+ * Here we only concat on place, whish is an UB by default.
+ * This implementation is required by LVGL for some widgets.
+ */
+#ifndef TEST_MODE
+static
+#endif
+char *shield_strcat(char *dest, const char* src)
+{
+    /* concat on place with trailing \0 */
+    memcpy(&dest[strlen(dest)], src, strlen(src) + 1);
+    return dest;
+}
 
 static inline void *_aligned_memcpy(void*dest, const void*src, size_t n)
 {
@@ -195,6 +208,7 @@ static bool _memarea_is_worldaligned(const void * memarea)
     return (((size_t)memarea % __WORDSIZE) == 0);
 }
 
+
 static bool _memarea_do_overlap(const void * mem_a_p, const void *mem_b_p, size_t n)
 {
     bool result = true;
@@ -238,6 +252,7 @@ end:
 size_t strlen(const char *s) __attribute__((alias("shield_strlen")));
 size_t strnlen(const char *s, size_t len) __attribute__((alias("shield_strnlen")));
 char *strcpy(char *dest, const char *src) __attribute__((alias("shield_strcpy")));
+char *strcat(char *dest, const char *src) __attribute__((alias("shield_strcat")));
 int strcmp(const char *str1, const char *str2) __attribute__((alias("shield_strcmp")));
 void *memcpy(void* dest, const void* src, size_t n) __attribute__((alias("shield_memcpy")));
 #endif
