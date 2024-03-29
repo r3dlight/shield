@@ -22,6 +22,7 @@ extern "C" {
 size_t strlen(const char *s);
 size_t strnlen(const char *s, size_t len);
 char *strcpy(char *dest, const char *src);
+char *strcat(char *dest, const char *src);
 int strcmp(const char *str1, const char *str2);
 
 void *memcpy(void *dest, const void *src, size_t n);
