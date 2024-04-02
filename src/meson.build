@@ -9,6 +9,7 @@ shield_clib_sourceset.add(files(
     'time.c',
     'printf.c',
     'printf_lexer.c',
+    'rand.c',
 ))
 
 shield_clib_sourceset.add(

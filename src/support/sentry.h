@@ -8,4 +8,6 @@
 
 uint8_t __libc_get_current_threadid(void);
 
+int get_entropy(unsigned char *in, uint16_t len);
+
 #endif/*__SENTRY_H_*/

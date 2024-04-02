@@ -203,12 +203,6 @@ static inline void *_unaligned_memcpy(void*dest, const void*src, size_t n)
     return dest;
 }
 
-static bool _memarea_is_worldaligned(const void * memarea)
-{
-    return (((size_t)memarea % __WORDSIZE) == 0);
-}
-
-
 static bool _memarea_do_overlap(const void * mem_a_p, const void *mem_b_p, size_t n)
 {
     bool result = true;
