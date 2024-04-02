@@ -5,6 +5,7 @@
 
 #include <uapi.h>
 #include "libc_init.h"
+#include "../include/shield/private/rand.h"
 
 /**
  * Canari variable, as defined in LLVM & GCC compiler documentation, in order to
@@ -31,6 +32,7 @@ _start(uint32_t const thread_id, uint32_t const seed)
     /* set the current SSP to kernel-given seed (stack-passed) */
     __stack_chk_guard = seed;
     __libc_init(); /* initiate libc-relative ontext, if needed (globlals, etc.) */
+    __shield_rand_set_seed(seed);
     /* calling thread entrypoint. the main function being implemented out of this file, SSP is active */
     task_ret = main();
     /* End of thread, store exit value in kernel thread information */
