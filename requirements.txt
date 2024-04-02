@@ -11,3 +11,4 @@ sphinx_rtd_theme
 exhale
 sphinx-simplepdf
 weasyprint
+GitPython>=3.1.0
