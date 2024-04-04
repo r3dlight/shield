@@ -11,8 +11,6 @@
  * check the liberpes (RPC implementation) instead.
  */
 
-
-#include <stdio.h>
 #include <stdint.h>
 #include <shield/sys/msg.h>
 #include <errno.h>
