@@ -7,6 +7,7 @@ shield_headers += files([
     'errno.h',
     'pthread.h',
     'string.h',
+    'sys/msg.h',
 ])
 
 subdir('arpa')
