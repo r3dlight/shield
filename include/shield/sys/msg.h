@@ -25,6 +25,8 @@
 /* generic IPC key_t for EwoK IPC (remote task name) */
 typedef taskh_t key_t;
 
+typedef long ssize_t;
+
 /* Here, we hold a word-aligned structure in order to avoid
  * any unaligned access to mtex fields for u32 & u64 types.
  * The difference with the POSIX type is the mtext definition,
