@@ -238,7 +238,7 @@ ssize_t msgrcv(int msqid,
     uint16_t rcv_size;
     uint8_t i = 0;
     uint8_t free_cell = 0;
-    uint32_t timeout = 0;
+    int32_t timeout = 0;
 
     /* sanitation */
     if (msgp == NULL) {
@@ -315,8 +315,8 @@ tryagain:
 
     /* get back message content from kernel */
     if (msgflg & IPC_NOWAIT) {
-        /* emulate with 1ms timeout */
-        timeout = 1;
+        /* sync wait */
+        timeout = -1;
     }
     ret = sys_wait_for_event(EVENT_TYPE_IPC, timeout);
     switch (ret) {
@@ -330,7 +330,7 @@ tryagain:
             __shield_set_errno(EACCES);
             goto err;
             break;
-        case STATUS_TIMEOUT:
+        case STATUS_AGAIN:
             errcode = -1; /* POSIX Compliance */
             __shield_set_errno(EAGAIN);
             goto err;
