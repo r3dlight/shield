@@ -30,8 +30,6 @@
 /* max number of cached messages per source task */
 #define CONFIG_STD_POSIX_SYSV_MSQ_DEPTH 1
 
-extern size_t _s_svcexchange;
-
 /* A message received by the kernel genuine type is char*. Though, its effective type here is struct msgbuf.
  * We use an union for clean cast. */
 typedef union {
@@ -343,7 +341,7 @@ tryagain:
             goto err;
             break;
     }
-    exchange_event_t* rcv_buf = (exchange_event_t*)&_s_svcexchange;
+    exchange_event_t* rcv_buf = _memarea_get_svcexcange_event();
     memcpy(&(qmsg_vector[msqid].msgbuf_v[free_cell].msg.msg[0]), &rcv_buf->data[0], rcv_buf->length);
     /* set recv msg size, removing the mtype field size */
     qmsg_vector[msqid].msgbuf_v[free_cell].msg_size = rcv_buf->length - sizeof(long);
