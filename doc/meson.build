@@ -19,10 +19,36 @@ weasyprint = find_program('weasyprint', required: true)
 
 shield_rst = files(
     'shield/posix/model.rst',
-    'shield/posix/pse51/stdio.rst',
-    'shield/posix/pse51/time.rst',
     'shield/posix/pse51.rst',
     'shield/posix/index.rst',
+    'shield/posix/pse51/clock_gettime.rst',
+    'shield/posix/pse51/getrandom.rst',
+    'shield/posix/pse51/htonl.rst',
+    'shield/posix/pse51/htons.rst',
+    'shield/posix/pse51/kill.rst',
+    'shield/posix/pse51/memcpy.rst',
+    'shield/posix/pse51/memset.rst',
+    'shield/posix/pse51/msgget.rst',
+    'shield/posix/pse51/msgrcv.rst',
+    'shield/posix/pse51/msgsnd.rst',
+    'shield/posix/pse51/nanosleep.rst',
+    'shield/posix/pse51/ntohl.rst',
+    'shield/posix/pse51/ntohs.rst',
+    'shield/posix/pse51/pthread_self.rst',
+    'shield/posix/pse51/sigaddset.rst',
+    'shield/posix/pse51/sigdelset.rst',
+    'shield/posix/pse51/sigemptyset.rst',
+    'shield/posix/pse51/sigfillset.rst',
+    'shield/posix/pse51/sigismember.rst',
+    'shield/posix/pse51/sigpending.rst',
+    'shield/posix/pse51/strcat.rst',
+    'shield/posix/pse51/strcmp.rst',
+    'shield/posix/pse51/strcpy.rst',
+    'shield/posix/pse51/strlen.rst',
+    'shield/posix/pse51/strnlen.rst',
+    'shield/posix/pse51/timer_create.rst',
+    'shield/posix/pse51/timer_gettime.rst',
+    'shield/posix/pse51/timer_settime.rst',
     'shield/_static/figures/outpost_fp.png',
     'shield/genindex.rst',
     'shield/tests/unittests.rst',
@@ -89,3 +115,9 @@ api = custom_target('sphinx-doc',
         'doc/api',
     ])
 doc = alias_target('doc', api)
+
+
+# man pages sources
+subdir('shield/posix/pse51')
+# man pages target
+subdir('mans')
