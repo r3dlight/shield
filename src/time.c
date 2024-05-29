@@ -98,8 +98,9 @@ static inline timer_info_t *__timer_find(timer_info_t * const timer_list, const 
     for (uint8_t i = 0; i < STD_POSIX_TIMER_MAXNUM; ++i) {
         if ((timer_list[i].valid == true) && (timer_list[i].id == key)) {
             timer = &timer_list[i];
+            /* @assert \valid(timer); */
+            break;
         }
-        break;
     }
     return timer;
 }
@@ -288,14 +289,15 @@ static int __timer_setnode(timer_t id,
     period_ms += (ts->tv_nsec / NANO_IN_MSEC);
 
     /* searching for node, starting with unset timers.... */
-    if (unlikely(timer_ctx.num_timers == 0) ||
-        unlikely((timer = __timer_find(timer_ctx.timers, id)) == NULL)) {
+    if (unlikely(timer_ctx.num_timers == 0)) {
         /* no unset timer found, fallback to already set timers */
-        if (unlikely((timer = __timer_find(timer_ctx.active_timers, id)) == NULL)) {
+        timer = __timer_find(timer_ctx.active_timers, id);
+        if (unlikely(timer == NULL)) {
             errcode = -1;
             __shield_set_errno(EINVAL);
             goto err;
         }
+        /*@ assert \valid(timer); */
 
         /* when timer already set and 'old' is non-null, set the previously
          * configured values to it */
@@ -363,7 +365,8 @@ static int __timer_setnode(timer_t id,
             memset(old, 0x0, sizeof(struct itimerspec));
         }
         /* simple case: move timer from created to active timers list */
-        if (unlikely((active_timer = __timer_find_freenode(timer_ctx.active_timers)) == NULL)) {
+        active_timer = __timer_find_freenode(timer_ctx.active_timers);
+        if (unlikely(active_timer == NULL)) {
             errcode = -1;
             __shield_set_errno(ENOMEM);
             goto err;
