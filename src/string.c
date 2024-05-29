@@ -14,11 +14,15 @@
  */
 
 #include <stdbool.h>
+/* used for usual isspace() & co */
+#include <ctype.h>
+
 #include <shield/string.h>
 #include <shield/errno.h>
 
 #include <shield/private/errno.h>
 #include <shield/private/coreutils.h>
+#include <limits.h>
 
 /**
  * \brief standard (and thus unsecure) strlen implementation
@@ -241,6 +245,185 @@ end:
     return result;
 }
 
+#define IS_SPACE(c) (c == ' ' || c == '\t' || )
+
+unsigned long shield_strtoul(const char *__restrict __n, char **__restrict __end_PTR, int __base)
+{
+
+    const unsigned char *s = (const unsigned char *)__n;
+    unsigned long acc = 0;
+    uint8_t c;
+    /*
+     * See strtol for comments as to the logic used.
+     */
+    do {
+        c = *s++;
+    } while (isspace(c));
+
+    /* check for potential minus/plus prefix */
+    switch (c) {
+        case '-' || '+':
+            c = *s++;
+            break;
+        default:
+            break;
+    }
+    /* check for 0x base prefix */
+    if (unlikely(c == '0')) {
+        if ((*s == 'x' || *s == 'X')) {
+            /* found 0x prefix */
+            if (__base != 16 && __base != 0) {
+                s = __n;
+                __shield_set_errno(EINVAL);
+                goto end;
+            }
+            /* normalize potential base == 0, and move forward */
+            __base = 16;
+            c = s[1];
+            s += 2;
+        } else if (__base == 0) {
+            __base = 8;
+        }
+    }
+    /* none of above matched */
+    if (__base == 0) {
+        /* fall-backing to base 10 when not starting with leading 0 */
+        __base = 10;
+    }
+    for (acc = 0; ; c = *s++) {
+        /* normalize to numeric value  */
+        if (isdigit(c)) {
+            c -= '0';
+        }
+        else if (isxdigit(c) && isupper(c)) {
+            c -= 'A';
+            c += 10;
+        }
+        else if (isxdigit(c) && islower(c)) {
+            c -= 'a';
+            c += 10;
+        }
+        else {
+            /* not a numerically valid char, leaving accumulation */
+            break;
+        }
+        /* check for small bases too: */
+        if (c >= __base) {
+            /* char not valid in current base */
+            break;
+        }
+        if ((acc > (ULONG_MAX / (unsigned long)__base)) &&
+            (c > (ULONG_MAX % (unsigned long)__base))) {
+            /* this would generate an integer overflow here */
+            acc = ULONG_MAX;
+            __shield_set_errno(ERANGE);
+            s = __n;
+            goto end;
+        }
+        acc *= __base;
+        acc += c;
+    }
+    /* moving to last digit */
+    s--;
+end:
+    if (__end_PTR != NULL)
+        *__end_PTR = (char *)s;
+    return (acc);
+}
+
+long shield_strtol(const char *__restrict __n, char **__restrict __end_PTR, int __base)
+{
+
+    const unsigned char *s = (const unsigned char *)__n;
+    unsigned long acc = 0;
+    uint8_t c;
+    bool neg = false;
+    /*
+     * See strtol for comments as to the logic used.
+     */
+    do {
+        c = *s++;
+    } while (isspace(c));
+
+    /* check for potential minus/plus prefix */
+    switch (c) {
+        case '-':
+            neg = true;
+            c = *s++;
+            break;
+        case '+':
+            c = *s++;
+            break;
+        default:
+            break;
+    }
+    /* check for 0x base prefix */
+    if (unlikely(c == '0')) {
+        if ((*s == 'x' || *s == 'X')) {
+            /* found 0x prefix */
+            if (__base != 16 && __base != 0) {
+                s = __n;
+                __shield_set_errno(EINVAL);
+                goto end;
+            }
+            /* normalize potential base == 0, and move forward */
+            __base = 16;
+            c = s[1];
+            s += 2;
+        } else if (__base == 0) {
+            __base = 8;
+        }
+    }
+    /* none of above matched */
+    if (__base == 0) {
+        /* fall-backing to base 10 when not starting with leading 0 */
+        __base = 10;
+    }
+    for (acc = 0; ; c = *s++) {
+        /* normalize to numeric value  */
+        if (isdigit(c)) {
+            c -= '0';
+        }
+        else if (isxdigit(c) && isupper(c)) {
+            c -= 'A';
+            c += 10;
+        }
+        else if (isxdigit(c) && islower(c)) {
+            c -= 'a';
+            c += 10;
+        }
+        else {
+            /* not a numerically valid char, leaving accumulation */
+            break;
+        }
+        /* check for small bases too: */
+        if (c >= __base) {
+            /* char not valid in current base */
+            break;
+        }
+        if ((acc > (LONG_MAX / (unsigned long)__base)) &&
+            (c > (LONG_MAX % (unsigned long)__base))) {
+            /* this would generate an integer overflow here */
+            acc = LONG_MAX;
+            __shield_set_errno(ERANGE);
+            s = __n;
+            goto end;
+        }
+        acc *= __base;
+        acc += c;
+    }
+    /* moving to last digit */
+    s--;
+    /* switch to negative if needed */
+    if (neg == true) {
+        acc = -acc;
+    }
+end:
+    if (__end_PTR != NULL)
+        *__end_PTR = (char *)s;
+    return (acc);
+}
+
 #ifndef TEST_MODE
 /* if not in the test suite case, aliasing to POSIX symbols */
 size_t strlen(const char *s) __attribute__((alias("shield_strlen")));
@@ -249,4 +432,6 @@ char *strcpy(char *dest, const char *src) __attribute__((alias("shield_strcpy"))
 char *strcat(char *dest, const char *src) __attribute__((alias("shield_strcat")));
 int strcmp(const char *str1, const char *str2) __attribute__((alias("shield_strcmp")));
 void *memcpy(void* dest, const void* src, size_t n) __attribute__((alias("shield_memcpy")));
+long strtol(const char *__restrict __n, char **__restrict __end_PTR, int __base) __attribute__((alias("shield_strtol")));
+unsigned long strtoul(const char *__restrict __n, char **__restrict __end_PTR, int __base) __attribute__((alias("shield_strtoul")));
 #endif
