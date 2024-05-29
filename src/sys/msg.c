@@ -29,26 +29,26 @@
 #define MAX_IPC_MSG_SIZE (CONFIG_SVC_EXCHANGE_AREA_LEN - sizeof(exchange_event_t) - sizeof(long))
 /* max number of cached messages per source task */
 #define CONFIG_STD_POSIX_SYSV_MSQ_DEPTH 1
+#define CONFIG_MAX_SYSV_MSG_LEN 1024
 
 /* A message received by the kernel genuine type is char*. Though, its effective type here is struct msgbuf.
  * We use an union for clean cast. */
 typedef union {
   struct msgbuf msgbuf;
-  char          msg[MAX_IPC_MSG_SIZE];
+  char          msg[CONFIG_MAX_SYSV_MSG_LEN];
 } qsmsg_msgbuf_data_t;
 
 typedef struct __attribute__((packed)) {
-  qsmsg_msgbuf_data_t msg;
-  uint8_t             msg_size;
+
   bool                set;
 } qmsg_msgbuf_t;
 
 typedef struct __attribute__((packed)) {
-    uint32_t     msg_lspid; /**< for broadcasting recv queue, id of the last sender */
+    uint32_t      msg_lspid; /**< for broadcasting recv queue, id of the last sender */
     uint32_t      msg_stime; /**< time of last snd event */
     uint32_t      msg_rtime; /**< time of last rcv event */
-    qmsg_msgbuf_t msgbuf_v[CONFIG_STD_POSIX_SYSV_MSQ_DEPTH];
-    uint8_t       msgbuf_ent;
+    qsmsg_msgbuf_data_t msg; /**< message content (for caching) */
+    size_t        msg_size;  /**< current message size, upto msgsz */
     uint16_t      msg_perm; /**< queue permission, used for the broadcast recv queue case (send forbidden) */
     bool          set;
     key_t         key;
@@ -59,14 +59,14 @@ typedef struct __attribute__((packed)) {
  *
  * This is size-impacting in SRAM and should be considered
  */
-static qmsg_entry_t qmsg_vector[CONFIG_MAX_TASKS+1];
+static qmsg_entry_t qmsg_vector[CONFIG_MAX_TASKS];
 
 /*
  * Zeroify properly the qmsg_vector. This function is called at task early init state, before main,
  * by the zeroify_libc_globals() callback.
  */
 static inline void msg_zeroify(void) {
-    memset((void*)qmsg_vector, 0x0, (CONFIG_MAX_TASKS+1 * sizeof(qmsg_entry_t)));
+    memset((void*)qmsg_vector, 0x0, (CONFIG_MAX_TASKS * sizeof(qmsg_entry_t)));
 }
 
 /*
@@ -125,6 +125,7 @@ int msgget(key_t key, int msgflg)
     qmsg_vector[tid].msg_perm = 0x666; /* unicast communication. Permission is handled by kernel */
     qmsg_vector[tid].msg_stime = 0;
     qmsg_vector[tid].msg_rtime = 0;
+    qmsg_vector[tid].msg_size = 0;
     qmsg_vector[tid].set = true;
     errcode = tid;
 err:
@@ -138,6 +139,11 @@ int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg)
 {
     int errcode = -1;
     Status ret;
+    const uint8_t *__msgp = msgp;
+    size_t chunk_offset = 0;
+    size_t chunk_size;
+    /* total number of bytes to emit */
+    size_t __msgsz = msgsz + sizeof(long);
 
     if (msgp == NULL) {
         errcode = -1; /* POSIX Compliance */
@@ -164,9 +170,18 @@ int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg)
         __shield_set_errno(EPERM);
         goto err;
     }
-    /* sending size+mtype field (long) */
-    copy_from_user((const uint8_t*)msgp, msgsz+sizeof(long));
-    ret = sys_send_ipc(qmsg_vector[msqid].key, msgsz+sizeof(long));
+    /* sending size+mtype field (long), possibly with multiple IPCs */
+    chunk_size = (__msgsz % MAX_IPC_MSG_SIZE);
+    do {
+        copy_from_user(__msgp, chunk_size);
+        ret = sys_send_ipc(qmsg_vector[msqid].key, chunk_size);
+        __msgp += chunk_size;
+        __msgsz -= chunk_size;
+        if (__msgsz < chunk_size) {
+            /* support for residual */
+            chunk_size = __msgsz;
+        }
+    } while(__msgsz > 0);
     /* clear queue once emitted */
     memset(&qmsg_vector[msqid], 0x0, sizeof(qmsg_entry_t));
 
@@ -233,12 +248,23 @@ ssize_t msgrcv(int msqid,
     ssize_t errcode = -1;
     Status ret;
     int tid = msqid;
-    uint16_t rcv_size;
     uint8_t i = 0;
     uint8_t free_cell = 0;
     int32_t timeout = 0;
+    size_t __msgsz = msgsz + sizeof(long);
+    uint8_t *__msgp = msgp;
+    size_t chunk_offset;
 
     /* sanitation */
+    if (msgsz > CONFIG_MAX_SYSV_MSG_LEN) {
+        if (!(msgflg & MSG_NOERROR)) {
+            /* msgsz bigger than max transmittable content and truncate (NOERROR)
+             * not allowed */
+            errcode = -1; /* POSIX Compliance */
+            __shield_set_errno(EINVAL);
+            goto err;
+        }
+    }
     if (msgp == NULL) {
         errcode = -1; /* POSIX Compliance */
         __shield_set_errno(EFAULT);
@@ -249,12 +275,12 @@ ssize_t msgrcv(int msqid,
         __shield_set_errno(EINVAL);
         goto err;
     }
-    if (qmsg_vector[msqid].set == false) {
+    if (qmsg_vector[msqid].msg_perm == 0x444) {
         errcode = -1; /* POSIX Compliance */
-        __shield_set_errno(EINVAL);
+        __shield_set_errno(EPERM);
         goto err;
     }
-    if (qmsg_vector[msqid].msg_perm == 0x444) {
+    if (msgsz > qmsg_vector[msqid].msg_perm) {
         errcode = -1; /* POSIX Compliance */
         __shield_set_errno(EPERM);
         goto err;
@@ -262,117 +288,141 @@ ssize_t msgrcv(int msqid,
 
 tryagain:
 
-    /* check local previously stored messages */
-    for (i = 0; i < CONFIG_STD_POSIX_SYSV_MSQ_DEPTH; ++i) {
-        if (qmsg_vector[msqid].msgbuf_v[i].set == true) {
-            /* msgtyp == 0, the first read message is transmitted */
-            if (msgtyp == 0) {
-                if (qmsg_vector[msqid].msgbuf_v[i].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
-                    /* truncate not allowed!*/
-                    errcode = -1;
-                    __shield_set_errno(E2BIG);
-                    goto err;
-                }
-                goto handle_cached_msg;
-            /* no EXCEPT mode, try to match msgtyp */
-            } else if ((msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msgbuf_v[i].msg.msgbuf.mtype != msgtyp)) {
-                /* found a waiting msg for except mode */
-                if (qmsg_vector[msqid].msgbuf_v[i].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
-                    /* truncate not allowed!*/
-                    errcode = -1;
-                    __shield_set_errno(E2BIG);
-                    goto err;
-                }
-                goto handle_cached_msg;
-
-            } else if (!(msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msgbuf_v[i].msg.msgbuf.mtype == msgtyp)) {
-                /* found a waiting msg with corresponding type */
-                if (qmsg_vector[msqid].msgbuf_v[i].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
-                    /* truncate not allowed!*/
-                    errcode = -1;
-                    __shield_set_errno(E2BIG);
-                    goto err;
-                }
-                goto handle_cached_msg;
+    /* check local previously stored messages for current msgqid */
+    if (qmsg_vector[msqid].set == true) {
+        /* msgtyp == 0, the first read message is transmitted */
+        if (msgtyp == 0) {
+            if (qmsg_vector[msqid].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
+                /* truncate not allowed!*/
+                errcode = -1;
+                __shield_set_errno(E2BIG);
+                goto err;
             }
-        } else {
-            free_cell = i;
+            goto handle_cached_msg;
+        /* no EXCEPT mode, try to match msgtyp */
+        } else if ((msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msg.msgbuf.mtype != msgtyp)) {
+            /* found a waiting msg for except mode */
+            if (qmsg_vector[msqid].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
+                /* truncate not allowed!*/
+                errcode = -1;
+                __shield_set_errno(E2BIG);
+                goto err;
+            }
+            goto handle_cached_msg;
+        } else if (!(msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msg.msgbuf.mtype == msgtyp)) {
+            /* found a waiting msg with corresponding type */
+            if (qmsg_vector[msqid].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
+                /* truncate not allowed!*/
+                errcode = -1;
+                __shield_set_errno(E2BIG);
+                goto err;
+            }
+            goto handle_cached_msg;
+        } else if (qmsg_vector[msqid].msg_size < msgsz) {
+            /* at least one chunk of msgqid was stored before, yet not reaching
+             * msgsz. Need to read other chunks to complete */
         }
     }
-    /* no cached message found ? if msgbuf_vector is full, NOMEM */
-    if (unlikely(qmsg_vector[msqid].msgbuf_ent == CONFIG_STD_POSIX_SYSV_MSQ_DEPTH)) {
-        errcode = -1;
-        __shield_set_errno(ENOMEM);
-        goto err;
-    }
-    /* here, free_cell should have been set at least one time, or the execution derivated to
-     * handle_cached_msg. we can use free_cell as cell id for next sys_ipc() call  */
-
-    /* by default, we are able to get back upto struct msgbuf content size in cache */
-    rcv_size = sizeof(struct msgbuf);
+    /* here, current msqid is free, or not yet fully loaded,
+     * get back msgsz from kernel, checking msgqid using the key (source id) */
 
     /* get back message content from kernel */
     if (msgflg & IPC_NOWAIT) {
         /* sync wait */
         timeout = -1;
     }
-    ret = sys_wait_for_event(EVENT_TYPE_IPC, timeout);
-    switch (ret) {
-        case STATUS_INVALID:
-            errcode = -1; /* POSIX Compliance */
-            __shield_set_errno(EINVAL);
-            goto err;
-            break;
-        case STATUS_DENIED:
-            errcode = -1; /* POSIX Compliance */
-            __shield_set_errno(EACCES);
-            goto err;
-            break;
-        case STATUS_AGAIN:
-            errcode = -1; /* POSIX Compliance */
-            __shield_set_errno(EAGAIN);
-            goto err;
-        case STATUS_OK:
-            break;
-        default:
-            /* abnormal other return code, should not happen */
-            errcode = -1; /* POSIX Compliance */
-            __shield_set_errno(EINVAL);
-            goto err;
-            break;
-    }
-    exchange_event_t* rcv_buf = _memarea_get_svcexcange_event();
-    memcpy(&(qmsg_vector[msqid].msgbuf_v[free_cell].msg.msg[0]), &rcv_buf->data[0], rcv_buf->length);
-    /* set recv msg size, removing the mtype field size */
-    qmsg_vector[msqid].msgbuf_v[free_cell].msg_size = rcv_buf->length - sizeof(long);
-    qmsg_vector[msqid].msgbuf_v[free_cell].set = true;
-    qmsg_vector[msqid].msgbuf_ent++;
+    /* as msgsz may be bigger thant an IPC size, we must support chunks */
+    chunk_offset = 0;
+    qmsg_vector[msqid].msg_size = 0;
+
+    do {
+        exchange_event_t* rcv_buf;
+        qmsg_entry_t *entry = &qmsg_vector[msqid];
+
+        ret = sys_wait_for_event(EVENT_TYPE_IPC, timeout);
+        switch (ret) {
+            case STATUS_INVALID:
+                errcode = -1; /* POSIX Compliance */
+                __shield_set_errno(EINVAL);
+                goto err;
+                break;
+            case STATUS_DENIED:
+                errcode = -1; /* POSIX Compliance */
+                __shield_set_errno(EACCES);
+                goto err;
+                break;
+            case STATUS_AGAIN:
+                errcode = -1; /* POSIX Compliance */
+                __shield_set_errno(EAGAIN);
+                goto err;
+            case STATUS_OK:
+                break;
+            default:
+                /* abnormal other return code, should not happen */
+                errcode = -1; /* POSIX Compliance */
+                __shield_set_errno(EINVAL);
+                goto err;
+                break;
+        }
+        rcv_buf = &_s_svcexchange;
+        /* check than received message source (taskh_t) matches current key */
+        if (rcv_buf->source == entry->key) {
+            /* received message matches current msgqid */
+            if (entry->msg_size + rcv_buf->length > CONFIG_MAX_SYSV_MSG_LEN) {
+                /* overflow here */
+                errcode = -1; /* POSIX Compliance */
+                __shield_set_errno(EBADF);
+                goto err;
+            }
+            memcpy(&entry->msg.msg[chunk_offset], &rcv_buf->data[0], rcv_buf->length);
+            chunk_offset += rcv_buf->length;
+            qmsg_vector[msqid].msg_size += rcv_buf->length;
+        } else {
+            /* else, rcv msg is not from the same key (another one has emitted) */
+            /* push current chunk to other queue that do match the source */
+            for (uint8_t queue = 0; queue < CONFIG_MAX_TASKS; ++queue) {
+                if (rcv_buf->source == qmsg_vector[msqid].key) {
+                    entry = &qmsg_vector[msqid];
+                    if (entry->msg_size + rcv_buf->length > CONFIG_MAX_SYSV_MSG_LEN) {
+                        /* overflow here */
+                        errcode = -1; /* POSIX Compliance */
+                        __shield_set_errno(EBADF);
+                        goto err;
+                    }
+                    memcpy(&entry->msg.msg[entry->msg_size], &rcv_buf->data[0], rcv_buf->length);
+                    if (chunk_offset)
+                    entry->msg_size += rcv_buf->length;
+                    entry->set = true;
+                }
+                /** WARN: if an IPC from a source from which a msgget() has never been
+                 * made is received, the IPC content is discarded */
+            }
+        }
+    } while (qmsg_vector[msqid].msg_size <= msgsz);
 
     /* Now that the buffer received. Check its content. Here, like for cache check, we must check
      * mtype according to msgflg */
-    if ((msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msgbuf_v[free_cell].msg.msgbuf.mtype != msgtyp)) {
+    if ((msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msg.msgbuf.mtype != msgtyp)) {
         /* if this message matches, check for its size, according to MSG_NOERROR flag */
-        if (qmsg_vector[msqid].msgbuf_v[free_cell].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
-            /* truncate not allowed!*/
-            qmsg_vector[msqid].msgbuf_v[free_cell].set = true;
+        if (qmsg_vector[msqid].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
+            /* truncate not allowed! keeping locally, let caller come back with increased msgsz */
+            qmsg_vector[msqid].set = true;
             errcode = -1;
             __shield_set_errno(E2BIG);
             goto err;
         }
-        i = free_cell;
         goto handle_cached_msg;
 
 
-    } else if (!(msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msgbuf_v[free_cell].msg.msgbuf.mtype == msgtyp)) {
+    } else if (!(msgflg & MSG_EXCEPT) && (qmsg_vector[msqid].msg.msgbuf.mtype == msgtyp)) {
         /* if this message matches, check for its size, according to MSG_NOERROR flag */
-        if (qmsg_vector[msqid].msgbuf_v[free_cell].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
+        if (qmsg_vector[msqid].msg_size > msgsz && !(msgflg & MSG_NOERROR)) {
             /* truncate not allowed!*/
-            qmsg_vector[msqid].msgbuf_v[free_cell].set = true;
+            qmsg_vector[msqid].set = true;
             errcode = -1;
             __shield_set_errno(E2BIG);
             goto err;
         }
-        i = free_cell;
         goto handle_cached_msg;
     }
 
@@ -393,10 +443,8 @@ err:
 
     /* handle found cached message or just received message */
 handle_cached_msg:
-    rcv_size = (msgsz < qmsg_vector[msqid].msgbuf_v[i].msg_size) ? msgsz : qmsg_vector[msqid].msgbuf_v[i].msg_size;
-    memcpy(msgp, &(qmsg_vector[msqid].msgbuf_v[i].msg.msgbuf), rcv_size + sizeof(long));
-    qmsg_vector[msqid].msgbuf_ent--;
-    qmsg_vector[msqid].msgbuf_v[i].set = false;
-    errcode = rcv_size;
+    memcpy(msgp, &(qmsg_vector[msqid].msg.msgbuf), qmsg_vector[msqid].msg_size);
+    qmsg_vector[msqid].set = false;
+    errcode = qmsg_vector[msqid].msg_size;
     return errcode;
 }
