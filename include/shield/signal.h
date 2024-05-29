@@ -8,6 +8,26 @@
 extern "C" {
 #endif
 
+#ifdef CONFIG_WITH_SENTRY
+/** NOTE: this value should be kernel delivered */
+#define _SIGNUM SIGNAL_USR2
+#include <types.h>
+
+enum posix_sigs {
+  SIGABORT = SIGNAL_ABORT,
+  SIGALARM = SIGNAL_ALARM,
+  SIGBUS = SIGNAL_BUS,
+  SIGCONT = SIGNAL_CONT,
+  SIGILL = SIGNAL_ILL,
+  SIGPIPE = SIGNAL_PIPE,
+  SIGPOLL = SIGNAL_POLL,
+  SIGTERM = SIGNAL_TERM,
+  SIGTRAP = SIGNAL_TRAP,
+  SIGUSR1 = SIGNAL_USR1,
+  SIGUSR2 = SIGNAL_USR2
+};
+#endif
+
 /* Future for multithreads compatible sigev structure */
 #define __SIGEV_MAX_SIZE	64
 #if __WORDSIZE == 64
@@ -41,6 +61,28 @@ typedef struct sigevent {
     int sigev_signo;
     int sigev_notify;
 } sigevent_t;
+
+/*
+ * sigset_t definition
+ */
+typedef struct
+{
+  bool __val[_SIGNUM];
+} __sigset_t;
+
+typedef __sigset_t sigset_t;
+
+int sigpending(sigset_t *set);
+
+int sigismember(const sigset_t *set, int signum);
+
+int sigemptyset(sigset_t *set);
+
+int sigfillset(sigset_t *set);
+
+int sigaddset(sigset_t *set, int signum);
+
+int sigdelset(sigset_t *set, int signum);
 
 #ifdef __cplusplus
 }

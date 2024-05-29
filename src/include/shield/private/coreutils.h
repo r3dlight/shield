@@ -3,6 +3,9 @@
 
 #include <stdbool.h>
 #include <stddef.h>
+#ifdef CONFIG_WITH_SENTRY
+#include <types.h>
+#endif
 
 #define container_of(ptr, type, member) ({                      \
         const typeof( ((type *)0)->member ) *__mptr = (ptr);    \
@@ -19,5 +22,13 @@ static inline bool _memarea_is_worldaligned(const void * memarea)
 {
     return (((size_t)memarea % __WORDSIZE) == 0);
 }
+
+#ifdef CONFIG_WITH_SENTRY
+extern exchange_event_t _s_svcexchange;
+
+static inline exchange_event_t* _memarea_get_svcexcange_event(void) {
+    return (&_s_svcexchange);
+}
+#endif
 
 #endif/*!TOOLS_H*/
