@@ -16,21 +16,23 @@ int sigpending(sigset_t *set)
         __shield_set_errno(EFAULT);
         goto end;
     }
-    /* no waiting signal is not an error */
-    if (unlikely((sysres = sys_wait_for_event(EVENT_TYPE_SIGNAL, WFE_WAIT_NO)) != STATUS_OK)) {
-        res = 0;
-        goto end;
-    }
-    if (event->type != EVENT_TYPE_SIGNAL) {
-        __shield_set_errno(EINVAL);
-        goto end;
-    }
-    signal = *(uint32_t*)&event->data[0];
-    if (signal > _SIGNUM) {
-        __shield_set_errno(EINVAL);
-        goto end;
-    }
-    set->__val[signal-1] = true;
+    /* we may have more that one single signal pending. Checking while there are some pending sigs found */
+    do {
+        if (unlikely((sysres = sys_wait_for_event(EVENT_TYPE_SIGNAL, WFE_WAIT_NO)) != STATUS_OK)) {
+            res = 0;
+            goto end;
+        }
+        if (event->type != EVENT_TYPE_SIGNAL) {
+            __shield_set_errno(EINVAL);
+            goto end;
+        }
+        signal = *(uint32_t*)&event->data[0];
+        if (signal > _SIGNUM) {
+            __shield_set_errno(EINVAL);
+            goto end;
+        }
+        set->__val[signal-1] = true;
+    } while (sysres == STATUS_OK);
     res = 0;
 end:
     return res;
