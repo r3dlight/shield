@@ -9,9 +9,12 @@ extern "C" {
 #endif
 
 #ifdef CONFIG_WITH_SENTRY
+#include <types.h>
+#include <uapi.h>
+
 /** NOTE: this value should be kernel delivered */
 #define _SIGNUM SIGNAL_USR2
-#include <types.h>
+typedef taskh_t pid_t;
 
 enum posix_sigs {
   SIGABORT = SIGNAL_ABORT,
@@ -83,6 +86,8 @@ int sigfillset(sigset_t *set);
 int sigaddset(sigset_t *set, int signum);
 
 int sigdelset(sigset_t *set, int signum);
+
+int kill(pid_t pid, int sig);
 
 #ifdef __cplusplus
 }

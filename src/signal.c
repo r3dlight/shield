@@ -115,3 +115,17 @@ int sigdelset(sigset_t *set, int signum)
 end:
     return res;
 }
+
+int kill(pid_t pid, int sig)
+{
+    int res = -1;
+
+    if (unlikely(sys_send_signal(pid, sig) != STATUS_OK)) {
+        /* do we differenciate ESRCH ? (invalid target) ? */
+        __shield_set_errno(EINVAL);
+        goto end;
+    }
+    res = 0;
+end:
+    return res;
+}
