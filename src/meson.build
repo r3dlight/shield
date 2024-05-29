@@ -10,6 +10,7 @@ shield_clib_sourceset.add(files(
     'printf.c',
     'printf_lexer.c',
     'rand.c',
+    'signal.c',
     'sys/msg.c',
 ))
 
