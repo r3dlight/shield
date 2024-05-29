@@ -81,11 +81,13 @@ char *shield_strcpy(char *dest, const char *src)
     if (dest < src) {
         if (((size_t)src - (size_t)dest) < (to_copy + 1)) {
             /* overlapping here */
+            __shield_set_errno(EINVAL);
             goto end;
         }
     } else {
         if (((size_t)dest - (size_t)src) < (to_copy + 1)) {
             /* overlapping here */
+            __shield_set_errno(EINVAL);
             goto end;
         }
     }
@@ -114,7 +116,16 @@ static
 int shield_strcmp(const char *str1, const char *str2)
 {
     int result = -1;
-    if (str1 == NULL || str2 == NULL) {
+    if (str1 == NULL && str2 == NULL) {
+        result = 0;
+        goto err;
+    }
+    if (str1 == NULL) {
+        result = -1;
+        goto err;
+    }
+    if (str2 == NULL) {
+        result = 1;
         goto err;
     }
 
