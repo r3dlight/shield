@@ -27,6 +27,8 @@ posix_api = files(
    'msgrcv.rst',
    'ntohl.rst',
    'ntohs.rst',
+   'printf.rst',
+   'snprintf.rst',
    'strcat.rst',
    'strlen.rst',
    'strcmp.rst',
