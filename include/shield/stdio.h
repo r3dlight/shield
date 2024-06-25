@@ -14,6 +14,7 @@ extern "C" {
 #include <stdbool.h>
 
 __attribute__ ((format (printf, 1, 2))) int printf(const char *fmt, ...);
+__attribute__ ((format (printf, 3, 4))) int snprintf(char *dest, size_t len, const char *fmt, ...);
 
 #if defined(__cplusplus)
 }
