@@ -67,6 +67,39 @@ err:
     return res;
 }
 
+__attribute__ ((format (printf, 3, 4))) int shield_snprintf(char*dest, size_t dlen, const char *fmt, ...)
+{
+    va_list args;
+    size_t  len;
+    int res = -1;
+
+    dbgbuffer_flush();
+    if (fmt == NULL) {
+        goto err;
+    }
+    /*
+     * if there is some asyncrhonous printf to pass to the kernel, do it
+     * before execute the current printf command
+     */
+    va_start(args, fmt);
+    if (print_with_len(fmt, &args, &len) == 0) {
+        res = (int)len;
+    }
+    va_end(args);
+    if (res == -1) {
+        dbgbuffer_flush();
+        goto err;
+    }
+    if (len > dlen) {
+        len = dlen;
+    }
+    memcpy(dest, log_get_dbgbuf(), len);
+err:
+    dbgbuffer_flush();
+    return res;
+}
+
 #ifndef TEST_MODE
 __attribute__ ((format (printf, 1, 2))) int printf(const char *fmt, ...) __attribute__((alias("shield_printf")));
+__attribute__ ((format (printf, 3, 4))) int snprintf(char*dest, size_t dlen, const char *fmt, ...) __attribute__((alias("shield_snprintf")));
 #endif
