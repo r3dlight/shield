@@ -11,8 +11,8 @@ ENTRY(_start)
 
 MEMORY
 {
-    APP_CODE (rx): ORIGIN = {{ "%#010x"|format(code.start_addr|int) }}, LENGTH = {{ "%#010x"|format(code.size|int) }}
-    APP_RAM (rw): ORIGIN = {{ "%#010x"|format(ram.start_addr|int) }}, LENGTH = {{ "%#010x"|format(ram.size|int) }}
+    APP_CODE (rx): ORIGIN = {{ code.start_address }}, LENGTH = {{ code.size }}
+    APP_RAM (rw): ORIGIN = {{ ram.start_address }}, LENGTH = {{ ram.size }}
 }
 
 /* Define output sections */
