@@ -2,6 +2,7 @@
 subdir('include')
 
 shield_clib_sourceset.add(files(
+    'assert.c',
     'errno.c',
     'string.c',
     'arpa/inet.c',
