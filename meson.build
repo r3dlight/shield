@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2023 Ledger SAS
+# SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
 project('libshield', 'c', 'cpp', 'rust',
-    meson_version: '>=1.3.0',
+    meson_version: '>=1.4.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
     default_options: [
         'c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021',
@@ -26,7 +26,7 @@ shield_data_dir = get_option('datadir') / 'shield'
 
 shield_link_args = []
 # Extra variable to add to the generated pkg-config file
-shield_pkgconfig_extravar = [ 'datadir=${prefix}/@0@'.format(shield_data_dir) ]
+shield_pkgconfig_extravar = [ 'shield_datadir=${datadir}/shield' ]
 # Extra link args for internal deps usage
 shield_extra_link_args_internal = []
 # Extra link args for external deps usage
@@ -81,7 +81,7 @@ else
 endif
 
 install_data(shield_app_linkerscript, install_dir : shield_data_dir)
-shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${datadir}' / fs.name(shield_app_linkerscript)) ]
+shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${shield_datadir}' / fs.name(shield_app_linkerscript)) ]
 
 endif # w/ sentry
 endif # cross build
@@ -92,7 +92,7 @@ ssmod = import('sourceset')
 shield_clib_sourceset = ssmod.source_set()
 
 add_project_arguments(shield_compile_args, language: 'c')
-add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
+add_project_arguments('-include', kconfig_h.full_path(), language : ['c'])
 shield_clib_sourceset.add(kconfig_h)
 
 subdir('include')
