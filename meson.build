@@ -92,7 +92,7 @@ ssmod = import('sourceset')
 shield_clib_sourceset = ssmod.source_set()
 
 add_project_arguments(shield_compile_args, language: 'c')
-add_project_arguments('-include', '@0@'.format(kconfig_h), language : ['c'])
+add_project_arguments('-include', kconfig_h.full_path(), language : ['c'])
 shield_clib_sourceset.add(kconfig_h)
 
 subdir('include')
