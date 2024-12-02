@@ -1,8 +1,8 @@
-# SPDX-FileCopyrightText: 2023 Ledger SAS
+# SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
 # SPDX-License-Identifier: LicenseRef-LEDGER
 
 project('libshield', 'c', 'cpp', 'rust',
-    meson_version: '>=1.3.0',
+    meson_version: '>=1.4.0',
     version: run_command('dunamai', 'from', 'git', '--style', 'semver', '--dirty', check: true).stdout().strip(),
     default_options: [
         'c_std=gnu11', 'cpp_std=gnu++20', 'rust_std=2021',
