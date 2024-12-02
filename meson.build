@@ -26,7 +26,7 @@ shield_data_dir = get_option('datadir') / 'shield'
 
 shield_link_args = []
 # Extra variable to add to the generated pkg-config file
-shield_pkgconfig_extravar = [ 'datadir=${prefix}/@0@'.format(shield_data_dir) ]
+shield_pkgconfig_extravar = [ 'shield_datadir=${datadir}/shield' ]
 # Extra link args for internal deps usage
 shield_extra_link_args_internal = []
 # Extra link args for external deps usage
@@ -81,7 +81,7 @@ else
 endif
 
 install_data(shield_app_linkerscript, install_dir : shield_data_dir)
-shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${datadir}' / fs.name(shield_app_linkerscript)) ]
+shield_pkgconfig_extravar += [ 'linker_script=@0@'.format('${shield_datadir}' / fs.name(shield_app_linkerscript)) ]
 
 endif # w/ sentry
 endif # cross build
