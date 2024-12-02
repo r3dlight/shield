@@ -2,6 +2,7 @@
 subdir('include')
 
 shield_clib_sourceset.add(files(
+    'abs.c',
     'assert.c',
     'errno.c',
     'string.c',
