@@ -9,5 +9,5 @@ edition = "2021"
 license = "Apache-2.0"
 
 [dependencies]
-shield-macros = { path = "macros" }
-sentry-uapi = { git = "https://github.com/outpost-os/sentry-kernel.git", branch="main" }
+shield-macros = { path = "macros", version="0.1" }
+sentry-uapi = { git = "https://github.com/outpost-os/sentry-kernel.git", branch="main", version="0.1" }
