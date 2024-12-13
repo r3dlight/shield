@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::fmt;
-use uapi::uapi;
+use uapi::{syscall, copy_to_kernel};
 
 // XXX for a given logger, we should support multiple sink
 // e.g. sys_log syscall, other term, file, etc.
@@ -11,7 +11,9 @@ struct LogSink;
 /// Write trait impl for LogSink type
 impl fmt::Write for LogSink {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        uapi::log(s);
+        let raw = s.as_bytes();
+        let _ = copy_to_kernel(&raw);
+        syscall::log(raw.len());
         Ok(())
     }
 }
