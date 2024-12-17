@@ -5,7 +5,7 @@ use core::fmt;
 use uapi::{syscall, copy_to_kernel};
 
 // XXX for a given logger, we should support multiple sink
-// e.g. sys_log syscall, other term, file, etc.
+// e.g. __sys_log syscall, other term, file, etc.
 struct LogSink;
 
 /// Write trait impl for LogSink type

@@ -143,12 +143,12 @@ static inline timer_info_t *__timer_find_freenode(timer_info_t * const timer_lis
 static inline int __timer_get_time_us(uint64_t *time)
 {
     int errcode = 0;
-    if (sys_get_cycle(PRECISION_MICROSECONDS) != STATUS_OK) {
+    if (__sys_get_cycle(PRECISION_MICROSECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
-    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+    if (unlikely(copy_from_kernel((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
         errcode = -1;
         __shield_set_errno(EINVAL);
         goto err;
@@ -163,12 +163,12 @@ err:
 static inline int __timer_get_time_ms(uint64_t *time)
 {
     int errcode = 0;
-    if (sys_get_cycle(PRECISION_MILLISECONDS) != STATUS_OK) {
+    if (__sys_get_cycle(PRECISION_MILLISECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
-    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+    if (unlikely(copy_from_kernel((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
         errcode = -1;
         __shield_set_errno(EINVAL);
         goto err;
@@ -183,12 +183,12 @@ err:
 static inline int __timer_get_time_ns(uint64_t *time)
 {
     int errcode = 0;
-    if (sys_get_cycle(PRECISION_NANOSECONDS) != STATUS_OK) {
+    if (__sys_get_cycle(PRECISION_NANOSECONDS) != STATUS_OK) {
         errcode = -1;
         __shield_set_errno(EPERM);
         goto err;
     }
-    if (unlikely(copy_to_user((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
+    if (unlikely(copy_from_kernel((uint8_t*)time, sizeof(uint64_t)) != STATUS_OK)) {
         errcode = -1;
         __shield_set_errno(EINVAL);
         goto err;
@@ -394,7 +394,7 @@ static int __timer_setnode(timer_t id,
     bubble_sort(timer_ctx.active_timers, STD_POSIX_TIMER_MAXNUM, sizeof(timer_info_t), timer_compare, NULL);
 
     /* call sigalarm() */
-    switch (sys_alarm(period_ms)) {
+    switch (__sys_alarm(period_ms)) {
         case STATUS_OK:
             goto err;
         case STATUS_DENIED:
@@ -725,7 +725,7 @@ int shield_nanosleep(const struct timespec *req, struct timespec *rem)
         }
         sd.arbitrary_ms += req->tv_sec;
         sd.tag = SLEEP_DURATION_ARBITRARY_MS;
-        status = sys_sleep(sd, SLEEP_MODE_SHALLOW);
+        status = __sys_sleep(sd, SLEEP_MODE_SHALLOW);
         if (unlikely(status != STATUS_OK)) {
             errcode = -1;
             __shield_set_errno(EINTR);

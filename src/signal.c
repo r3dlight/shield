@@ -18,7 +18,7 @@ int sigpending(sigset_t *set)
     }
     /* we may have more that one single signal pending. Checking while there are some pending sigs found */
     do {
-        if (unlikely((sysres = sys_wait_for_event(EVENT_TYPE_SIGNAL, WFE_WAIT_NO)) != STATUS_OK)) {
+        if (unlikely((sysres = __sys_wait_for_event(EVENT_TYPE_SIGNAL, WFE_WAIT_NO)) != STATUS_OK)) {
             res = 0;
             goto end;
         }
@@ -122,7 +122,7 @@ int kill(pid_t pid, int sig)
 {
     int res = -1;
 
-    if (unlikely(sys_send_signal(pid, sig) != STATUS_OK)) {
+    if (unlikely(__sys_send_signal(pid, sig) != STATUS_OK)) {
         /* do we differenciate ESRCH ? (invalid target) ? */
         __shield_set_errno(EINVAL);
         goto end;

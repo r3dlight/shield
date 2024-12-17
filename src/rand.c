@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <sys/types.h>
 #include <shield/private/coreutils.h>
 #include <shield/private/errno.h>
 #include <errno.h>
