@@ -20,12 +20,12 @@ void dbgbuffer_flush(void);
 static inline void dbgbuffer_display(void)
 {
     uint16_t len = log_get_dbgbuf_offset();
-    if (unlikely(copy_from_user(log_get_dbgbuf(), len) != STATUS_OK)) {
+    if (unlikely(copy_to_kernel(log_get_dbgbuf(), len) != STATUS_OK)) {
         /* should not happen */
         /*@ assert(false); */
         goto err;
     }
-    sys_log(len);
+    __sys_log(len);
 err:
     return;
 }

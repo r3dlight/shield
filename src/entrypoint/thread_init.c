@@ -37,7 +37,7 @@ _start(uint32_t const thread_id, uint32_t const seed)
     task_ret = main();
     /* End of thread, store exit value in kernel thread information */
 #if CONFIG_WITH_SENTRY
-    sys_exit(task_ret);
+    __sys_exit(task_ret);
 #else
 # error "no supported backend"
 #endif

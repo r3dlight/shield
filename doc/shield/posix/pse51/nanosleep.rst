@@ -56,7 +56,7 @@ nanosleep
 
 **Note**
 
-   The Shield implementation use an active wait if the requested time is shorter than the system tick period, or passive wait (calling the sys_sleep() syscall) otherwise.
+   The Shield implementation use an active wait if the requested time is shorter than the system tick period, or passive wait (calling the __sys_sleep() syscall) otherwise.
 
 **See also**
 

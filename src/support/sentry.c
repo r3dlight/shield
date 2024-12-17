@@ -27,11 +27,11 @@ static inline uint32_t sentry_get_entropy(void)
   uint32_t entropy;
   /* if the task do not have SYS_RANDOM permission, falling back to
    * POSIX random using SSP seed as initial seed value */
-  if (sys_get_random() != STATUS_OK) {
+  if (__sys_get_random() != STATUS_OK) {
     /* get back for SSP backed GNU libC compliant BSD rand() */
     entropy = (uint32_t)rand();
   } else {
-    copy_to_user((uint8_t*)&entropy, sizeof(uint32_t));
+    copy_from_kernel((uint8_t*)&entropy, sizeof(uint32_t));
   }
   return entropy;
 }

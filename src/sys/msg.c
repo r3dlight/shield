@@ -173,8 +173,8 @@ int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg)
     /* sending size+mtype field (long), possibly with multiple IPCs */
     chunk_size = (__msgsz % MAX_IPC_MSG_SIZE);
     do {
-        copy_from_user(__msgp, chunk_size);
-        ret = sys_send_ipc(qmsg_vector[msqid].key, chunk_size);
+        copy_to_kernel(__msgp, chunk_size);
+        ret = __sys_send_ipc(qmsg_vector[msqid].key, chunk_size);
         __msgp += chunk_size;
         __msgsz -= chunk_size;
         if (__msgsz < chunk_size) {
@@ -339,7 +339,7 @@ tryagain:
         exchange_event_t* rcv_buf;
         qmsg_entry_t *entry = &qmsg_vector[msqid];
 
-        ret = sys_wait_for_event(EVENT_TYPE_IPC, timeout);
+        ret = __sys_wait_for_event(EVENT_TYPE_IPC, timeout);
         switch (ret) {
             case STATUS_INVALID:
                 errcode = -1; /* POSIX Compliance */
