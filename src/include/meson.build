@@ -1,5 +1,6 @@
-# SPDX-FileCopyrightText: 2023 Ledger SAS
-# SPDX-License-Identifier: LicenseRef-LEDGER
+# SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+#
+# SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 # headers used at libshield compile time only, not exported nor installed
 # their usage is dedicated to libshield sources (not exported headers),

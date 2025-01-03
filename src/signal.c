@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+//
+// SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
+
 #include <uapi.h>
 #include <shield/signal.h>
 #include <shield/errno.h>
