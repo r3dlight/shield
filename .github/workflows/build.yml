@@ -1,0 +1,141 @@
+name: libshield build
+
+on:
+  push:
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DTS: 'subprojects/sentry/dts/examples/nucleo_f401re.dts'
+  DTS_INCDIR: 'subprojects/sentry/dts'
+  DOTCONFIG: 'configs/defconfig'
+
+jobs:
+  forge_matrix:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.9.14-alpine3.16
+    steps:
+      - id: set_matrix
+        shell: python
+        run: |
+          import os
+          if "${{ github.event_name }}" == "pull_request":
+            operating_system = [ 'mesonbuild/ubuntu-rolling', 'mesonbuild/arch:latest' ]
+            toolchain = [ 'gcc|12.3.Rel1', 'gcc|10.3-2021.07', 'gcc|13.2.Rel1' ]
+          else:
+            operating_system = [ 'mesonbuild/ubuntu-rolling' ]
+            toolchain = [ 'gcc|12.3.Rel1' ]
+          with open(os.environ['GITHUB_OUTPUT'], 'w') as gh_out:
+            gh_out.write(f"operating_system={operating_system}\n")
+            gh_out.write(f"toolchain={toolchain}\n")
+    outputs:
+      operating_system: ${{ steps.set_matrix.outputs.operating_system }}
+      toolchain: ${{ steps.set_matrix.outputs.toolchain }}
+
+  build:
+    needs: [ forge_matrix ]
+    strategy:
+      matrix:
+        operating_system: ${{ fromJSON(needs.forge_matrix.outputs.operating_system) }}
+        toolchain: ${{ fromJSON(needs.forge_matrix.outputs.toolchain) }}
+    name: build
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ matrix.operating_system }}
+    steps:
+      - name: Clear GITHUB_HOME at job start
+        shell: bash
+        run: |
+          find $HOME -mindepth 1 -maxdepth 1 -not -name '.' -exec rm -rf {} \;
+      - name: install prerequisites pkg
+        uses: outpost-os/action-install-pkg@v1
+        with:
+          packages: 'libssh2-1|libssh2,swig|swig-git,dtc,device-tree-compiler,curl'
+      - name: Split compiler reference
+        id: split
+        shell: bash
+        run: |
+          input_toolchain="${{matrix.toolchain}}"
+          toolchain_compiler=${input_toolchain%%|*}
+          toolchain_version=${input_toolchain##*|}
+          echo "compiler=$toolchain_compiler" >> $GITHUB_ENV
+          echo "compiler_version=$toolchain_version" >> $GITHUB_ENV
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+          targets: thumbv7m-none-eabi,thumbv7em-none-eabi,thumbv7em-none-eabihf
+          components: clippy,rustfmt
+      - name: Setup C toolchain
+        uses: outpost-os/action-setup-compiler@v1
+        with:
+          compiler: ${{ env.compiler }}
+          triple: arm-none-eabi
+          ref: ${{ env.compiler_version }}
+          workspace: $GITHUB_WORKSPACE
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: deploy local deps
+        run: |
+          pip install -r requirements.txt
+      - name: Meson Build
+        uses: outpost-os/action-meson@v1
+        with:
+          cross_files: ${{ format('{0}/{1}', env.MESON_CROSS_FILES, 'arm-none-eabi-gcc.ini') }}
+          actions: '["prefetch", "setup", "compile"]'
+          options: '-Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}}'
+      - name: Meson postcheck
+        if: failure()
+        run: |
+          cat builddir/meson-logs/meson-log.txt
+
+  doc:
+    defaults:
+      run:
+        shell: bash
+    runs-on: ubuntu-latest
+    container:
+      image: 'mesonbuild/ubuntu-rolling'
+    steps:
+      - name: install prerequisites pkg
+        uses: outpost-os/action-install-pkg@v1
+        with:
+          packages: 'pandoc,dtc|device-tree-compiler,libssh2-1|libssh2,curl,lld,swig'
+      - name: Setup Rust toolchain
+        uses: dtolnay/rust-toolchain@v1
+        with:
+          toolchain: nightly
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: deploy local deps
+        run: |
+          pip install -r requirements.txt
+      - name: Meson Doc
+        uses: outpost-os/action-meson@v1
+        with:
+          actions: '["prefetch", "setup"]'
+          options: '-Dconfig=${{env.DOTCONFIG}} -Ddts=${{env.DTS}} -Ddts-include-dirs=${{env.DTS_INCDIR}} -Dwith_doc=true'
+      - name: Meson postcheck
+        if: failure()
+        run: |
+          cat builddir/meson-logs/meson-log.txt
+          cat builddir/meson-logs/testlog.txt
+      - name: Build HTML documentation
+        run: |
+          ninja -C builddir doc/shield
+      - name: Build PDF documentation
+        run: |
+          ninja -C builddir doc/shield_pdf

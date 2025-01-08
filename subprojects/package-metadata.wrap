@@ -1,4 +1,4 @@
 [wrap-git]
-url = git@git.orange.ledgerlabs.net:outpost/meson-app-metadata.git
+url = https://github.com/outpost-os/outpost-package-metadata.git
 revision = main
 depth = 1
