@@ -55,10 +55,27 @@ jobs:
     container:
       image: ${{ matrix.operating_system }}
     steps:
-      - name: Clear GITHUB_HOME at job start
-        shell: bash
+      - name: XXX git permission quirk XXX
         run: |
-          find $HOME -mindepth 1 -maxdepth 1 -not -name '.' -exec rm -rf {} \;
+          git config --global --add safe.directory $GITHUB_WORKSPACE
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          set-safe-directory: true
+      - name: Clone cross-files
+        uses: actions/checkout@v4
+        with:
+          ref:  'main'
+          repository: 'outpost-os/meson-cross-files'
+          path: crossfiles
+      - name: Deploy cross-files
+        run: |
+          mkdir -p $HOME/.local/share/meson/cross
+          cp -a $GITHUB_WORKSPACE/crossfiles/*.ini $HOME/.local/share/meson/cross
+          echo "MESON_CROSS_FILES=$HOME/.local/share/meson/cross" >> $GITHUB_ENV
+        shell: bash
+ 
       - name: install prerequisites pkg
         uses: outpost-os/action-install-pkg@v1
         with:
@@ -111,6 +128,18 @@ jobs:
     container:
       image: 'mesonbuild/ubuntu-rolling'
     steps:
+      - name: Clone cross-files
+        uses: actions/checkout@v4
+        with:
+          ref:  'main'
+          repository: 'outpost-os/meson-cross-files'
+          path: crossfiles
+      - name: Deploy cross-files
+        run: |
+          mkdir -p $HOME/.local/share/meson/cross
+          cp -a $GITHUB_WORKSPACE/crossfiles/*.ini $HOME/.local/share/meson/cross
+          echo "MESON_CROSS_FILES=$HOME/.local/share/meson/cross" >> $GITHUB_ENV
+
       - name: install prerequisites pkg
         uses: outpost-os/action-install-pkg@v1
         with:
