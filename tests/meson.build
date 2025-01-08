@@ -1,5 +1,5 @@
-# SPDX-FileCopyrightText: 2023 Ledger SAS
-# SPDX-License-Identifier: LicenseRef-LEDGER
+# SPDX-FileCopyrightText: 2023 - 204 Ledger SAS
+# SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 hostcc = meson.get_compiler('c', native: true)
 

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2023-2024 Ledger SAS
+SPDX-License-Identifier: Apache-2.0
+-->
+
 # libShield
 
 Sentry kernel and embedded hardened micro-libC
@@ -27,4 +32,3 @@ $ meson setup -Dwith_tests=true builddir
 $ cd builddir
 $ ninja test
 ```
-

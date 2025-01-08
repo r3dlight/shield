@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+# SPDX-License-Identifier: Apache-2.0
+
 dunamai~=1.16.1
 meson~=1.4.0
 swig
@@ -6,7 +9,7 @@ kconfiglib~=14.1.0
 jinja-cli
 svd2json>=0.1.6
 dts-utils>=0.2.0
-dtschema
+# dtschema
 sphinx_rtd_theme
 exhale
 sphinx-simplepdf

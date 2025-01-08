@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
-# SPDX-License-Identifier: LicenseRef-LEDGER
+# SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 project('libshield', 'c', 'cpp', 'rust',
     meson_version: '>=1.4.0',

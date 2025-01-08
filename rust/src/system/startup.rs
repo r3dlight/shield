@@ -1,6 +1,6 @@
 // SPDX-FileCopyrightText: 2024 Ledger SAS
 //
-// SPDX-License-Identifier: Apache-2.0
+// SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 extern "Rust" {
     /// External no_mangled, Rust ABI, `main` function declaration

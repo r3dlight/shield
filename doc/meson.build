@@ -1,5 +1,5 @@
 # SPDX-FileCopyrightText: 2023 Ledger SAS
-# SPDX-License-Identifier: LicenseRef-LEDGER
+# SPDX-License-Identifier: Apache-2.0
 
 pymod = import('python')
 sphinx = find_program('sphinx-build')

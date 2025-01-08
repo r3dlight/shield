@@ -1,0 +1,23 @@
+# SPDX-FileCopyrightText: 2024 Ledger SAS
+# SPDX-License-Identifier: Apache-2.0
+
+name: Check source code REUSE SPDX conformity
+
+on:
+  push:
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  spdx-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: REUSE Compliance Check
+        uses: fsfe/reuse-action@v5

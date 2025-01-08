@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+# SPDX-License-Identifier: Apache-2.0
+
 option('config', type: 'string', description: 'Configuration file to use', yield: true)
 option('with_doc', type: 'boolean', value: false, description: 'trigger the sphinx documentation build')
 option('with_tests', type: 'boolean', value: false, description: 'with unit tests')

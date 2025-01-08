@@ -1,5 +1,6 @@
-// SPDX-FileCopyrightText: 2023 Ledger SAS
-// SPDX-License-Identifier: LicenseRef-LEDGER
+// SPDX-FileCopyrightText: 2023 - 2024 Ledger SAS
+//
+// SPDX-License-Identifier: Apache-2.0 OR BSD-3-Clause
 
 #ifndef __SENTRY_H_
 #define __SENTRY_H_
