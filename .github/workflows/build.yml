@@ -55,9 +55,6 @@ jobs:
     container:
       image: ${{ matrix.operating_system }}
     steps:
-      - name: XXX git permission quirk XXX
-        run: |
-          git config --global --add safe.directory $GITHUB_WORKSPACE
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
